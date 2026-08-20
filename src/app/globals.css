@@ -1,0 +1,107 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Dark theme is the only theme. Accent: #6ad26a -> hsl(120 54% 62%) */
+    --background: 0 0% 4%;
+    --foreground: 0 0% 96%;
+
+    --card: 0 0% 6%;
+    --card-foreground: 0 0% 96%;
+
+    --primary: 120 54% 62%;
+    --primary-foreground: 120 40% 8%;
+
+    --secondary: 0 0% 12%;
+    --secondary-foreground: 0 0% 96%;
+
+    --muted: 0 0% 11%;
+    --muted-foreground: 0 0% 60%;
+
+    --accent: 120 20% 12%;
+    --accent-foreground: 120 54% 70%;
+
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 0 0% 15%;
+    --input: 0 0% 16%;
+    --ring: 120 54% 62%;
+
+    --radius: 0.7rem;
+
+    --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  ::selection {
+    background: hsl(var(--primary) / 0.3);
+  }
+
+  /* Slim, themed scrollbar */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--background));
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 9999px;
+    border: 2px solid hsl(var(--background));
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(0 0% 25%);
+  }
+}
+
+@layer components {
+  /* Compact form control used across the marketplace filter sidebar. */
+  .filter-input {
+    @apply h-9 w-full rounded-md border border-border bg-background px-2.5 text-sm outline-none transition-colors focus:ring-2 focus:ring-ring;
+  }
+}
+
+@layer utilities {
+  /* Subtle radial glow used behind hero / section headers */
+  .glow-grid {
+    background-image: radial-gradient(
+        hsl(var(--primary) / 0.07) 1px,
+        transparent 1px
+      );
+    background-size: 28px 28px;
+  }
+
+  .text-gradient {
+    background: linear-gradient(
+      120deg,
+      hsl(var(--foreground)),
+      hsl(var(--primary))
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .ring-glow {
+    box-shadow: 0 0 40px -8px hsl(var(--primary) / 0.35);
+  }
+}
