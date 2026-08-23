@@ -101,7 +101,25 @@ export default function MarketplacePage() {
     toastTimer.current = setTimeout(() => setToast(null), 5000);
   }, []);
 
-  const { myVotes, vote, votingId, withVotes } = useListingVotes(!!profile, showToast);
+  // A vote that buries a craft removes it from the grid under the voter's cursor,
+  // which reads as the site breaking unless it is said out loud. The listing is
+  // dropped locally rather than by reloading the page: the grid is CDN-cached for a
+  // minute, so a refetch would very likely bring the craft straight back.
+  const onListingRemoved = useCallback((l: Listing, kind: string) => {
+    showToast(
+      `"${l.craft_name}" reached the community rating limit and was ` +
+        `${kind === "deleted" ? "removed from" : "taken off"} the marketplace.`,
+    );
+    setData((d) =>
+      d
+        ? { ...d, listings: d.listings.filter((x) => x.listing_id !== l.listing_id),
+            total: Math.max(0, d.total - 1) }
+        : d,
+    );
+  }, [showToast]);
+
+  const { myVotes, vote, votingId, withVotes } = useListingVotes(
+    !!profile, showToast, onListingRemoved);
 
   // Voting on a craft you're selling is refused by the API, so the button says so
   // rather than failing when pressed. Being signed out is different: it stays

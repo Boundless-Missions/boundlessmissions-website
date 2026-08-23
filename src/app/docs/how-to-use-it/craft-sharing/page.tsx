@@ -132,6 +132,16 @@ export default function CraftSharingPage() {
           files themselves are never embedded: they are the pack author&rsquo;s
           art, far too large for a craft transfer, and not ours to redistribute.
         </p>
+        <p>
+          Reforged Materials Redux &mdash; the in-editor painter built on top of
+          Textures Unlimited &mdash; is carried the same way, with one difference
+          that matters. It keeps its paint in its own part module and needs no
+          manifest at all, because it is a single mod in a single folder. But it
+          patches that module onto <em>every</em> part in the game, painted or
+          not, so a craft only counts as painted when a setting is actually off
+          its default. That is the test behind the marketplace tag, and it is why
+          an unpainted craft built on a Reforged install still lists as stock.
+        </p>
       </Section>
 
       <Section title="RealFuels and Realism Overhaul">

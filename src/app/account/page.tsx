@@ -40,6 +40,10 @@ export default function AccountPage() {
   const [purchases, setPurchases] = useState<Listing[] | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Neutral counterpart to `error`: something happened that the user should know
+  // about but did not go wrong. The only one so far is a vote of theirs pushing a
+  // craft to the rating floor.
+  const [notice, setNotice] = useState<string | null>(null);
   // Listing awaiting delete confirmation (drives the in-app confirm modal).
   const [pendingDelete, setPendingDelete] = useState<Listing | null>(null);
   // Listing being reported (Purchases tab), and that dialog's own busy/error state.
@@ -127,7 +131,18 @@ export default function AccountPage() {
 
   // Votes on the Purchases tab: someone who bought and flew a craft is exactly who
   // should be able to rate it. Uploads get no vote row — you can't vote on your own.
-  const { myVotes, vote, votingId, withVotes } = useListingVotes(!!profile, setError);
+  // A craft bought here stays bought and stays downloadable whatever its rating
+  // does, so this is a notice and not a change to the list.
+  const onListingRemoved = useCallback((l: Listing, kind: string) => {
+    setNotice(
+      `"${l.craft_name}" reached the community rating limit and was ` +
+        `${kind === "deleted" ? "removed from" : "taken off"} the marketplace. ` +
+        `Your copy and its download are unaffected.`,
+    );
+  }, []);
+
+  const { myVotes, vote, votingId, withVotes } = useListingVotes(
+    !!profile, setError, onListingRemoved);
 
   function voteControls(l: Listing) {
     return {
@@ -212,6 +227,12 @@ export default function AccountPage() {
             {error && (
               <div className="mb-4 rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
                 {error}
+              </div>
+            )}
+
+            {notice && (
+              <div className="mb-4 rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+                {notice}
               </div>
             )}
 

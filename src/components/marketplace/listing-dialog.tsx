@@ -16,6 +16,7 @@ import {
   lifeSupportLabel,
   CUSTOM_TEXTURES_LABEL,
   CUSTOM_TEXTURES_HINT,
+  AUTO_DELISTED_HINT,
 } from "@/lib/marketplace";
 
 interface ListingDialogProps {
@@ -107,7 +108,11 @@ export function ListingDialog({
         <div className="flex w-full flex-col gap-4 overflow-y-auto p-6 md:w-80">
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="secondary">{listing.craft_type}</Badge>
-            {delisted && <Badge variant="muted">Delisted</Badge>}
+            {delisted && (
+              <Badge variant="muted" title={listing.auto_delisted ? AUTO_DELISTED_HINT : undefined}>
+                {listing.auto_delisted ? "Removed — rating" : "Delisted"}
+              </Badge>
+            )}
             {listing.custom_textures && (
               <Badge variant="default" className="gap-1" title={CUSTOM_TEXTURES_HINT}>
                 <Palette className="h-3.5 w-3.5" /> {CUSTOM_TEXTURES_LABEL}

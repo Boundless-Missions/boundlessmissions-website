@@ -34,14 +34,32 @@ export interface Listing {
   ls_endurance_days?: number;
   /** Total seats, so the per-kerbal endurance can be turned into a range. */
   ls_crew_capacity?: number;
-  /** The craft carries a Textures Unlimited paint job — it needs TU (and the recolour
-   *  packs in `mods`) to look like its blueprint. Sent by the KSP client at list-time;
-   *  older listings have it inferred from the mod row by the bot. */
+  /** The craft carries a custom paint job — Textures Unlimited or Reforged Materials
+   *  Redux — so it needs the recolour mods in `mods` to look like its blueprint. Sent
+   *  by the KSP client at list-time; older listings have it inferred from the mod row
+   *  by the bot. */
   custom_textures?: boolean;
-  /** Community vote tallies. Who voted is never sent — only your own vote comes
-   *  back, from `fetchMyVotes`. */
+  /** The craft's community rating: likes minus dislikes, one signed number. This
+   *  is what the cards show; the tallies below it are the split behind it and are
+   *  only used as a fallback for a response that predates `score`. Who voted is
+   *  never sent — only your own vote comes back, from `fetchMyVotes`. */
+  score?: number;
   likes?: number;
   dislikes?: number;
+  /** The rating floor took this listing down, not the seller. */
+  auto_delisted?: boolean;
+}
+
+/** A listing's rating, falling back to the tallies for an older API response. */
+export function listingScore(l: Pick<Listing, "score" | "likes" | "dislikes">): number {
+  if (typeof l.score === "number") return l.score;
+  return (l.likes ?? 0) - (l.dislikes ?? 0);
+}
+
+/** A rating as it is written next to a craft: signed, and "+0" rather than "0",
+ *  because the sign is what says this is a score and not a count of anything. */
+export function formatScore(score: number): string {
+  return score > 0 ? `+${score}` : score === 0 ? "+0" : String(score);
 }
 
 /** A vote is the state you want, not a toggle — see the bot's VoteRequest. */
@@ -79,15 +97,25 @@ export function lifeSupportLabel(l: Listing): string | null {
 }
 
 /**
- * The Textures Unlimited tag, in one place so the card and the detail view can't
- * drift apart. The hint is the part that matters: TU is not a requirement to *use*
- * the craft — the mod drops paint-job modules the buyer's install can't accept, so it
- * arrives in stock colours rather than broken (see TextureTransfer's ReconcileCraftBody).
+ * The custom-paint tag, in one place so the card and the detail view can't drift
+ * apart. It covers both recolour systems the mod carries — Textures Unlimited and
+ * Reforged Materials Redux — so the wording names neither: the mod row below it says
+ * which one, and a buyer only needs to know the craft is painted. The hint is the part
+ * that matters: neither mod is a requirement to *use* the craft, since the paint-job
+ * modules the buyer's install can't accept are dropped on import and it arrives in
+ * stock colours rather than broken (TextureTransfer / ReforgedTransfer ReconcileCraftBody).
  */
 export const CUSTOM_TEXTURES_LABEL = "Modded Textures Available";
 export const CUSTOM_TEXTURES_HINT =
-  "Painted with Textures Unlimited. Install TU and the recolour packs listed under Mods " +
-  "to see it as pictured — without them the craft still loads, in stock colours.";
+  "Custom paint job. Install the recolour mods listed under Mods to see it as pictured " +
+  "— without them the craft still loads, in stock colours.";
+
+/** Shown on a listing the rating floor took down, wherever the "Delisted" badge is.
+ *  It has to say what did NOT happen: the seller keeps the craft and every buyer
+ *  keeps their download, which "removed" on its own does not suggest. */
+export const AUTO_DELISTED_HINT =
+  "Taken off the marketplace automatically: its community rating fell to the limit. " +
+  "The craft and every purchase of it are untouched, and a moderator can put it back.";
 
 export interface ListingsPage {
   listings: Listing[];
@@ -140,7 +168,8 @@ export const PAGE_SIZE = 25;
 export const SORTS = [
   { value: "recommended", label: "Recommended" },
   { value: "new", label: "Newest" },
-  { value: "likes", label: "Most liked" },
+  // The query value stays "likes" so links and cached pages keep working.
+  { value: "likes", label: "Highest rated" },
   { value: "price_asc", label: "Price: low → high" },
   { value: "price_desc", label: "Price: high → low" },
   { value: "sales", label: "Best selling" },
@@ -148,8 +177,8 @@ export const SORTS = [
 
 /** One line under the sort picker explaining what the less obvious modes do. */
 export const SORT_HINTS: Record<string, string> = {
-  recommended: "New craft (under 15 days) picking up likes fastest, then the best-liked rest.",
-  likes: "Ranked by likes minus dislikes, all-time.",
+  recommended: "New craft (under 15 days) gaining rating fastest, then the best-rated rest.",
+  likes: "Ranked by community rating (likes minus dislikes), all-time.",
 };
 
 function buildQuery(f: ListingFilters): string {
@@ -220,9 +249,15 @@ export async function buyListing(id: string): Promise<BuyResult> {
 
 export interface VoteResult {
   success: boolean;
+  score: number;
   likes: number;
   dislikes: number;
   my_vote: number;
+  /** This vote took the craft to the rating floor and off the marketplace. The
+   *  voter is told, or the listing vanishing under their cursor reads as a bug. */
+  listing_removed?: boolean;
+  /** "delisted" or "deleted" when `listing_removed`. */
+  removal_kind?: string;
 }
 
 /** Every listing the signed-in user has voted on: {listing_id: 1 | -1}. Empty

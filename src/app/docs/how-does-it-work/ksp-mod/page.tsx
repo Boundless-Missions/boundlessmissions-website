@@ -138,8 +138,8 @@ dotnet build -c Release`}
           every integration degrades to doing nothing when the mod is absent and
           to doing nothing harmful when it is present in a version the add-on
           does not recognise. That covers TweakScale, Textures Unlimited,
-          RealFuels, ConformalDecals, Janitor&rsquo;s Closet, CKAN, Kronal
-          Vessel Viewer, Deferred and all five life support mods. The details of what each one
+          RealFuels, ConformalDecals, Janitor&rsquo;s Closet, CKAN, Deferred
+          and all five life support mods. The details of what each one
           carries are on{" "}
           <Link
             href="/docs/how-to-use-it/craft-sharing"

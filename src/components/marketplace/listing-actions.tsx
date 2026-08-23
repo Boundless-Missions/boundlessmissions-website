@@ -1,9 +1,15 @@
 "use client";
 
 /**
- * listing-actions.tsx — the like / dislike / report row shown on a listing.
+ * listing-actions.tsx — the rating / report row shown on a listing.
  *
- * Fully controlled: every piece of state (the tallies, my vote, which listing is
+ * A craft carries ONE number, the way SCP wiki rates a page: +1 per like, -1 per
+ * dislike, shown signed between the two buttons. The separate tallies still exist
+ * server-side, but showing them is showing the working rather than the answer —
+ * "+31 / -4" and "+27" say the same thing and only one of them can be read at a
+ * glance on a card.
+ *
+ * Fully controlled: every piece of state (the score, my vote, which listing is
  * mid-request) lives in `useListingVotes` on the page, because the same listing is
  * on screen twice whenever its detail dialog is open.
  *
@@ -14,7 +20,14 @@
 import { Flag, ThumbsDown, ThumbsUp } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { VOTE_DOWN, VOTE_NONE, VOTE_UP, type Listing } from "@/lib/marketplace";
+import {
+  formatScore,
+  listingScore,
+  VOTE_DOWN,
+  VOTE_NONE,
+  VOTE_UP,
+  type Listing,
+} from "@/lib/marketplace";
 
 interface ListingActionsProps {
   listing: Listing;
@@ -44,8 +57,7 @@ export function ListingActions({
   busy,
   className,
 }: ListingActionsProps) {
-  const likes = listing.likes ?? 0;
-  const dislikes = listing.dislikes ?? 0;
+  const score = listingScore(listing);
 
   function press(button: number) {
     onVote(listing, myVote === button ? VOTE_NONE : button);
@@ -55,16 +67,26 @@ export function ListingActions({
     <div className={cn("flex items-center gap-1", className)}>
       <VoteButton
         icon={<ThumbsUp className="h-3.5 w-3.5" />}
-        count={likes}
         active={myVote === VOTE_UP}
         activeClass="border-primary/60 bg-primary/15 text-primary"
         label={canVote ? (myVote === VOTE_UP ? "Remove your like" : "Like this craft") : disabledHint}
         disabled={!canVote || busy}
         onClick={() => press(VOTE_UP)}
       />
+      <span
+        title={`Community rating: ${formatScore(score)} (likes minus dislikes)`}
+        className={cn(
+          "min-w-[2.5rem] px-1 text-center text-xs font-semibold tabular-nums transition-colors",
+          // Only a negative score is coloured. A green +4 next to a grey +0 makes
+          // every unrated craft look faintly disapproved of, which is not what a
+          // craft nobody has voted on yet means.
+          score < 0 ? "text-destructive" : "text-foreground",
+        )}
+      >
+        {formatScore(score)}
+      </span>
       <VoteButton
         icon={<ThumbsDown className="h-3.5 w-3.5" />}
-        count={dislikes}
         active={myVote === VOTE_DOWN}
         activeClass="border-destructive/50 bg-destructive/10 text-destructive"
         label={
@@ -90,7 +112,6 @@ export function ListingActions({
 
 function VoteButton({
   icon,
-  count,
   active,
   activeClass,
   label,
@@ -98,7 +119,6 @@ function VoteButton({
   onClick,
 }: {
   icon: React.ReactNode;
-  count: number;
   active: boolean;
   activeClass: string;
   label?: string;
@@ -114,15 +134,14 @@ function VoteButton({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs tabular-nums transition-colors",
+        "inline-flex items-center justify-center rounded-md border p-1.5 transition-colors",
         active ? activeClass : "border-border text-muted-foreground",
-        // A signed-out visitor still sees the counts, so the disabled state must
+        // A signed-out visitor still sees the rating, so the disabled state must
         // read as "not for you" rather than as an error.
         disabled ? "cursor-not-allowed opacity-70" : "hover:text-foreground",
       )}
     >
       {icon}
-      {count}
     </button>
   );
 }

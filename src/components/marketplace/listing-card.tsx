@@ -15,6 +15,7 @@ import {
   craftDownloadHref,
   lifeSupportLabel,
   CUSTOM_TEXTURES_LABEL,
+  AUTO_DELISTED_HINT,
   CUSTOM_TEXTURES_HINT,
 } from "@/lib/marketplace";
 
@@ -102,8 +103,12 @@ export function ListingCard({
           {listing.craft_type}
         </Badge>
         {delisted && (
-          <Badge variant="muted" className="absolute right-2 top-2">
-            Delisted
+          <Badge
+            variant="muted"
+            className="absolute right-2 top-2"
+            title={listing.auto_delisted ? AUTO_DELISTED_HINT : undefined}
+          >
+            {listing.auto_delisted ? "Removed — rating" : "Delisted"}
           </Badge>
         )}
         {/* Expand affordance on hover */}

@@ -153,7 +153,7 @@ export default function MarketplacePage() {
               name: "Recommended",
               type: "the default",
               description:
-                "A discovery sort. New craft under fifteen days old, ranked by how fast they are picking up likes, then everything else by net likes as a tail so a quiet fortnight does not empty the tab.",
+                "A discovery sort. New craft under fifteen days old, ranked by how fast their rating is climbing, then everything else by rating as a tail so a quiet fortnight does not empty the tab.",
             },
             {
               name: "Newest",
@@ -161,10 +161,10 @@ export default function MarketplacePage() {
               description: "Most recently listed first.",
             },
             {
-              name: "Most liked",
+              name: "Highest rated",
               type: "net, all time",
               description:
-                "Likes minus dislikes, without any time weighting.",
+                "By community rating, without any time weighting.",
             },
             {
               name: "Best selling",
@@ -189,10 +189,27 @@ export default function MarketplacePage() {
         </p>
       </Section>
 
-      <Section title="Likes, dislikes and reports">
+      <Section title="Rating and reports">
         <p>
-          All three require you to be signed in. An anonymous like is worth
-          nothing, and an anonymous report costs a moderator their afternoon.
+          Every craft carries a single community rating: each like is{" "}
+          <strong className="text-foreground">+1</strong>, each dislike{" "}
+          <strong className="text-foreground">&minus;1</strong>, and the signed
+          total is the number shown between the two buttons. Pressing the button
+          you already chose takes your vote back.
+        </p>
+        <p>
+          A craft whose rating falls to{" "}
+          <strong className="text-foreground">&minus;20</strong> is taken off the
+          marketplace automatically, without a moderator having to be awake for
+          it. Nothing is destroyed: the seller still has the craft under My
+          Uploads, everyone who bought it keeps their download, and a moderator
+          can put it back. What the seller cannot do is relist it themselves
+          while the rating is still that low.
+        </p>
+        <p>
+          Rating and reporting both require you to be signed in. An anonymous
+          like is worth nothing, and an anonymous report costs a moderator their
+          afternoon.
         </p>
         <p>
           A report opens a ticket in your own server, so you can follow what

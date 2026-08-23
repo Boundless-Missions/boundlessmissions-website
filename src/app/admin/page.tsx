@@ -73,7 +73,7 @@ import {
   type AdminUserRow,
   type ModVersionConfig,
 } from "@/lib/admin";
-import { formatCoins, type Listing } from "@/lib/marketplace";
+import { formatCoins, formatScore, listingScore, type Listing } from "@/lib/marketplace";
 import { cn } from "@/lib/utils";
 
 type Tab =
@@ -413,13 +413,19 @@ function ListingsTab() {
                 <p className="truncate font-medium">{l.craft_name}</p>
                 <p className="truncate text-xs text-muted-foreground">
                   {l.seller_name} · {l.part_count} parts · {l.sales_count} sold ·{" "}
+                  {/* The split behind the rating, which only this console shows: it is
+                      what says whether a buried craft was disliked by a crowd or by a
+                      handful of people, and that is the reinstatement decision. */}
+                  rating {formatScore(listingScore(l))} ({l.likes ?? 0}↑ {l.dislikes ?? 0}↓) ·{" "}
                   <span className="font-mono">{l.listing_id}</span>
                 </p>
               </div>
               <Badge variant="secondary" className="gap-1 tabular-nums">
                 <Coins className="h-3.5 w-3.5" /> {formatCoins(l.price)}
               </Badge>
-              <Badge variant={l.status === "active" ? "secondary" : "outline"}>{l.status}</Badge>
+              <Badge variant={l.status === "active" ? "secondary" : "outline"}>
+                {l.auto_delisted ? "delisted (rating)" : l.status}
+              </Badge>
               <div className="flex gap-1.5">
                 <Button size="sm" variant="outline" onClick={() => setEditing(l)} disabled={busyId === l.listing_id}>
                   <Pencil className="h-3.5 w-3.5" /> Edit
