@@ -164,7 +164,7 @@ export default function SettingsPage() {
               name: "enableTextureTransfer",
               type: "bool, default true",
               description:
-                "Carry a craft's paint job — Textures Unlimited or Reforged Materials Redux — and reconcile it against what is installed here on arrival.",
+                "Carry a craft's paint job (Textures Unlimited or Reforged Materials Redux) and reconcile it against what is installed here on arrival.",
             },
             {
               name: "enableFuelConfigTransfer",

@@ -23,10 +23,10 @@ export function PlainLegalLinks() {
   return (
     <nav aria-label="Plain text versions">
       <a href="/legal/privacy.html" className={cls}>
-        Privacy Policy — plain text version (no scripts)
+        Privacy Policy (plain text, no scripts)
       </a>
       <a href="/legal/terms.html" className={cls}>
-        Terms of Service — plain text version (no scripts)
+        Terms of Service (plain text, no scripts)
       </a>
     </nav>
   );

@@ -107,8 +107,8 @@ export function lifeSupportLabel(l: Listing): string | null {
  */
 export const CUSTOM_TEXTURES_LABEL = "Modded Textures Available";
 export const CUSTOM_TEXTURES_HINT =
-  "Custom paint job. Install the recolour mods listed under Mods to see it as pictured " +
-  "— without them the craft still loads, in stock colours.";
+  "Custom paint job. Install the recolour mods listed under Mods to see it as pictured; " +
+  "without them the craft still loads, in stock colours.";
 
 /** Shown on a listing the rating floor took down, wherever the "Delisted" badge is.
  *  It has to say what did NOT happen: the seller keeps the craft and every buyer

@@ -108,7 +108,7 @@ export function ListingCard({
             className="absolute right-2 top-2"
             title={listing.auto_delisted ? AUTO_DELISTED_HINT : undefined}
           >
-            {listing.auto_delisted ? "Removed — rating" : "Delisted"}
+            {listing.auto_delisted ? "Removed (rating)" : "Delisted"}
           </Badge>
         )}
         {/* Expand affordance on hover */}

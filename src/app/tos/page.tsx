@@ -42,7 +42,7 @@ export default function TermsOfServicePage() {
                 Terms of Service
               </h1>
               <p className="mt-3 text-muted-foreground">
-                Last updated · <time dateTime="2026-08-20">20 August 2026</time>
+                Last updated · <time dateTime="2026-08-24">24 August 2026</time>
               </p>
             </div>
           </div>
@@ -114,9 +114,8 @@ export default function TermsOfServicePage() {
                 parts of the European Economic Area), and in that case the
                 higher age applies. If you are under the age of majority where you live
                 (typically 18), you must have your parent or legal
-                guardian&rsquo;s permission to agree to these Terms and to use
-                any paid features, should they ever be introduced (see
-                Sections 4 and 11). We do not knowingly collect personal
+                guardian&rsquo;s permission to agree to these Terms and to
+                use the Service. We do not knowingly collect personal
                 information from children under 13.
               </p>
             </div>
@@ -170,12 +169,11 @@ export default function TermsOfServicePage() {
                 infrastructure budget, and its architecture has not yet been
                 proven under mass use. We therefore cannot promise that free
                 access can be sustained at any scale. If running costs exceed
-                what we can absorb, we may introduce a paid access tier (for
-                example through a platform such as Patreon) to cover
-                infrastructure costs, never for the mod itself, which stays
-                free and open-source. Any such change will be announced
-                through the Discord server and/or this website before it
-                takes effect.
+                what we can absorb, we may have to limit capacity or restrict
+                who can use the hosted servers. The mod itself stays free and
+                open-source either way. Any material change to how access
+                works will be announced through the Discord server and/or
+                this website before it takes effect.
               </p>
               <p className="mt-3">
                 <strong className="text-foreground">
@@ -190,6 +188,24 @@ export default function TermsOfServicePage() {
                 through the Discord server and/or this website in advance.
                 Your data-deletion
                 rights under the Privacy Policy survive all of these measures.
+              </p>
+              <p className="mt-3">
+                <strong className="text-foreground">
+                  Removal of content.
+                </strong>{" "}
+                We may remove, delist or delete any user-generated content
+                uploaded to the Service&rsquo;s database &mdash; craft files,
+                screenshots, custom flags, marketplace listings, contract text
+                and anything else you submit &mdash; at any time, with or
+                without reason, and without prior notice. A removal is not by
+                itself a finding that you did anything wrong: it may follow a
+                moderation decision, but it may equally come down to storage,
+                running costs, or the Service no longer carrying that kind of
+                content. Keep your own copies of anything you care about; the
+                Service is not a backup. Removing content does not on its own
+                suspend your account or delete the rest of your data, and it
+                cannot recall copies already delivered to other players
+                (see Section 7).
               </p>
             </div>
 
@@ -208,8 +224,8 @@ export default function TermsOfServicePage() {
                 </Link>{" "}
                 describes in detail what data we collect (Discord account
                 link, a random device identifier, IP address, gameplay data,
-                website activity and, in the report flows only, MAC address
-                and KSP.log), why we collect it, who processes it on our
+                website activity and, in the report flows only, your
+                KSP.log), why we collect it, who processes it on our
                 behalf, and how you can control it. The key points are:
               </p>
               <ul className="mt-3 list-inside list-disc space-y-1.5 pl-1">
@@ -263,6 +279,13 @@ export default function TermsOfServicePage() {
                   Abuse, harass or impersonate other community members.
                 </li>
                 <li>
+                  Embed or share flags, decals or other images that contain
+                  personal information &mdash; your own or anyone else&rsquo;s
+                  &mdash; such as real names, faces, addresses, contact
+                  details, identity or payment documents, or private
+                  conversations.
+                </li>
+                <li>
                   File false or bad-faith reports against other players,
                   devices or marketplace listings.
                 </li>
@@ -289,6 +312,19 @@ export default function TermsOfServicePage() {
                 Privacy Policy). Moderation within the community Discord
                 server itself, including bans from that server, is separate
                 and governed by Discord&apos;s own Terms of Service.
+              </p>
+              <p className="mt-3">
+                <strong className="text-foreground">
+                  Flags and embedded images.
+                </strong>{" "}
+                A flag embedded in a craft is delivered into the game of
+                everyone who receives that craft, and copies already installed
+                cannot be recalled. Crafts found to carry a flag containing
+                personal information are therefore removed: the listing is
+                delisted, the stored files are deleted, and the craft is
+                withdrawn from any transfer or contract still carrying it. This
+                applies whether the information is yours or someone
+                else&rsquo;s, and is in addition to the measures above.
               </p>
               <p className="mt-3">
                 Some reviews and checks (such as contract-submission review)
@@ -318,6 +354,26 @@ export default function TermsOfServicePage() {
                 licence or deleting your data stops us from distributing it
                 further, but cannot recall copies already delivered to other
                 players&apos; machines.
+              </p>
+              <p className="mt-3">
+                <strong className="text-foreground">
+                  Promotional use of your crafts.
+                </strong>{" "}
+                You also grant us a non-exclusive, worldwide, royalty-free
+                licence to use the crafts you share through the Service &mdash;
+                the craft file itself, the blueprint sheets and thumbnails the
+                add-on renders from it, and the screenshots you submit
+                alongside it &mdash; to promote {siteConfig.name}. In practice
+                that means showing your craft in places such as the Discord
+                server, this website, the add-on&apos;s release pages and forum
+                threads, and posts about the project on social media. We credit
+                you by your Discord display name wherever the format allows; we
+                do not sell your crafts, licence them on to third parties, or
+                use them to advertise anything other than the Service itself.
+                This licence is revocable on the same terms as the rest of this
+                section: tell us and we will stop using your craft in new
+                material, though we cannot always withdraw material that is
+                already published or that others have since reposted.
               </p>
               <p className="mt-3">
                 &ldquo;Kerbal Space Program&rdquo; and associated branding are
@@ -390,15 +446,15 @@ export default function TermsOfServicePage() {
               </h2>
               <p>
                 The Service is{" "}
-                <strong className="text-foreground">currently free</strong>{" "}
-                and there is nothing to bill. If a paid access tier is ever
-                introduced (see Section 4), payments would be handled by a
-                third-party platform such as Patreon, whose own Terms of
-                Service would govern all financial transactions, billing
-                inquiries and refunds; we would not store or process your
-                payment information directly. Any move to paid access will be
-                announced through the Discord server and/or this website
-                before it takes effect.
+                <strong className="text-foreground">free</strong>. There is
+                nothing to bill: access is not sold, no feature is locked
+                behind a payment, and we never collect or store payment
+                details. Any voluntary support you give us through a
+                third-party platform buys nothing here: it grants no access,
+                no advantage and no in-game currency. If this ever changes it
+                will be announced through the Discord server and/or this
+                website before it takes effect, and these Terms will be
+                updated.
               </p>
             </div>
 
@@ -412,7 +468,11 @@ export default function TermsOfServicePage() {
                 <a href="mailto:legal@boundlessmissions.com" className="text-primary underline underline-offset-4 transition-colors hover:text-primary/80">
                   legal@boundlessmissions.com
                 </a>
-                , through the {siteConfig.name} Discord server, or open an issue on our{" "}
+                . For account help, bug reports and anything else, email{" "}
+                <a href="mailto:support@boundlessmissions.com" className="text-primary underline underline-offset-4 transition-colors hover:text-primary/80">
+                  support@boundlessmissions.com
+                </a>
+                , ask in the {siteConfig.name} Discord server, or open an issue on our{" "}
                 <Link
                   href="/github"
                   className="text-primary underline underline-offset-4 transition-colors hover:text-primary/80"

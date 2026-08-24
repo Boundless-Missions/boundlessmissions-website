@@ -232,6 +232,38 @@ export default function ContractsPage() {
         </Callout>
       </Section>
 
+      <Section title="Reporting the other party">
+        <p>
+          Suing and reporting are different things, and picking the wrong one
+          wastes everybody&rsquo;s time. <strong>Sue</strong> asks a moderator to
+          decide a <em>contract</em>: was this delivery what was asked for?{" "}
+          <strong>Report</strong> is about a <em>person</em> — an abusive mission
+          text, a deal somebody refuses to honour, a contract written to be
+          impossible so the fine collects itself.
+        </p>
+        <p>
+          Report sits on the contract in KSP and on the website&rsquo;s Contracts
+          page, in every state: a mission text does not stop being abusive once
+          the contract has finished. It opens a private ticket in your own server
+          with a moderator pinged, carrying the contract, both accounts and what
+          you wrote. The other party is named in it but is not given access.
+        </p>
+        <p>
+          One report per contract per person — filing the same complaint twice
+          does not make it louder — and weekly missions cannot be reported, since
+          the bot is not somebody a moderator can take it up with. If a weekly
+          mission itself is broken, that is a bug report, from the mod&rsquo;s
+          Tools tab.
+        </p>
+        <Callout variant="warning" title="Not a substitute for the dispute buttons">
+          <p>
+            A late delivery, or a disagreement about whether the work was good
+            enough, is not a report. Settle, Ask for more time and Sue exist for
+            those, and they are the ones that can actually move the money.
+          </p>
+        </Callout>
+      </Section>
+
       <DocPager
         prev={{ title: "Linking Your Game", href: "/docs/how-to-use-it/linking" }}
         next={{ title: "Auctions", href: "/docs/how-to-use-it/auctions" }}

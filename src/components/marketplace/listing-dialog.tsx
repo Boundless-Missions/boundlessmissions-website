@@ -110,7 +110,7 @@ export function ListingDialog({
             <Badge variant="secondary">{listing.craft_type}</Badge>
             {delisted && (
               <Badge variant="muted" title={listing.auto_delisted ? AUTO_DELISTED_HINT : undefined}>
-                {listing.auto_delisted ? "Removed — rating" : "Delisted"}
+                {listing.auto_delisted ? "Removed (rating)" : "Delisted"}
               </Badge>
             )}
             {listing.custom_textures && (

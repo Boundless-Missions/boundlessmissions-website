@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Loader2, Gavel, Clock, AlertTriangle, Gamepad2 } from "lucide-react";
+import { Loader2, Gavel, Clock, AlertTriangle, Gamepad2, Flag } from "lucide-react";
 
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { LinkAccount } from "@/components/marketplace/link-account";
+import { ReportDialog } from "@/components/report-dialog";
 import {
   fetchContracts,
   acceptContract,
@@ -18,6 +19,7 @@ import {
   disputeContract,
   answerSettle,
   answerMoreTime,
+  reportContract,
   openSubmitInKsp,
   formatInstant,
   tomorrow,
@@ -137,6 +139,9 @@ function ContractCard({ contract: c, onActed }: { contract: Contract; onActed: (
   const [confirming, setConfirming] = useState<string | null>(null);
   const [newDate, setNewDate] = useState("");
   const [pickingDate, setPickingDate] = useState(false);
+  const [reporting, setReporting] = useState(false);
+  const [reportBusy, setReportBusy] = useState(false);
+  const [reportError, setReportError] = useState<string | null>(null);
 
   /**
    * A refused action comes back as `success: false` with a sentence worth reading, so
@@ -300,6 +305,27 @@ function ContractCard({ contract: c, onActed }: { contract: Contract; onActed: (
     }
   }
 
+  // Reporting is not a contract action and so is not in `actions`: it sits apart from
+  // the row, is offered in every state (an abusive mission text is still abusive after
+  // the contract is finished), and never for a weekly mission — the bot has no
+  // counterparty a moderator could talk to, and the server refuses it anyway.
+  const canReport = !c.is_bot_issued;
+  const otherParty = c.is_outgoing ? c.contractor_name : c.issuer_name;
+
+  async function sendReport(reason: string) {
+    setReportBusy(true);
+    setReportError(null);
+    try {
+      const r = await reportContract(id, reason);
+      setReporting(false);
+      setNote(r.message);
+    } catch (e) {
+      setReportError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setReportBusy(false);
+    }
+  }
+
   return (
     <Card>
       <CardContent className="space-y-3 p-5">
@@ -369,6 +395,46 @@ function ContractCard({ contract: c, onActed }: { contract: Contract; onActed: (
           <p className="text-xs text-muted-foreground">Click again to confirm.</p>
         )}
         {note && <p className="text-sm">{note}</p>}
+
+        {canReport && (
+          <div className="flex justify-end border-t border-border pt-2">
+            <button
+              onClick={() => { setReportError(null); setReporting(true); }}
+              className="flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-destructive"
+            >
+              <Flag className="h-3.5 w-3.5" />
+              Report {otherParty}
+            </button>
+          </div>
+        )}
+
+        {reporting && (
+          <ReportDialog
+            title="Report this contract"
+            subject={
+              <>
+                <span className="font-medium text-foreground">{otherParty}</span>
+                {c.is_outgoing ? " — the contractor on " : " — the issuer of "}
+                &ldquo;{c.mission.length > 80 ? c.mission.slice(0, 80) + "…" : c.mission}&rdquo;
+              </>
+            }
+            prompt="What went wrong?"
+            placeholder="Abusive mission text, a deal they refuse to honour, an impossible contract written to collect the fine…"
+            notice={
+              <>
+                This opens a private ticket in Discord with a moderator pinged. The
+                contract, both parties and your Discord account are attached to it.
+                {c.status === "disputed"
+                  ? " A refused submission on its own is not a report — Settle, Ask for more time and Sue are the buttons for that."
+                  : " A late delivery or a disagreement about the work is not a report; use the dispute buttons for those."}
+              </>
+            }
+            busy={reportBusy}
+            error={reportError}
+            onSubmit={sendReport}
+            onClose={() => { if (!reportBusy) setReporting(false); }}
+          />
+        )}
       </CardContent>
     </Card>
   );

@@ -88,7 +88,7 @@ export default function EconomyPage() {
               name: "Selling craft",
               type: "your asking price",
               description:
-                "Plus a 300 KCoin bonus for listing a design with more than twenty distinct part types, once a day at most.",
+                "Plus a 300 KCoin bonus for listing a design with more than ten distinct part types, once a day at most.",
             },
             {
               name: "Levelling up",

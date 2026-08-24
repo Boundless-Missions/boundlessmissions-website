@@ -66,7 +66,7 @@ export default function AuctionsPage() {
         <h1 className="mb-2 text-3xl font-bold tracking-tight">Auctions</h1>
         <p className="mb-6 text-sm text-muted-foreground">
           Reverse auctions: an issuer escrows a starting price and contractors bid it
-          down — the lowest bid when the timer ends wins the contract. Auctions are
+          down; the lowest bid when the timer ends wins the contract. Auctions are
           opened from inside KSP; here (and in Discord) you watch them and bid.
         </p>
 

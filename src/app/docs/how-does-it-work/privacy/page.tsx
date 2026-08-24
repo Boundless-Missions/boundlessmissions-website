@@ -49,6 +49,12 @@ export default function PrivacyPage() {
                 "The account everything else hangs off. No password is stored, because none is ever asked for.",
             },
             {
+              name: "Your Discord profile",
+              type: "seen by other players",
+              description:
+                "Your display name, profile picture and corp name, stored so the add-on can draw you in the in-game player lists other players pick from (sending a craft, offering a contract, issuing a rescue) and beside the listings and auctions you take part in. It is the same public profile the community server already shows; your Discord ID is not displayed.",
+            },
+            {
               name: "Gameplay progress",
               type: "the point of the thing",
               description:
@@ -78,9 +84,11 @@ export default function PrivacyPage() {
 
       <Section title="What is not stored">
         <p>
-          Your IP address, your MAC address and your KSP.log are{" "}
+          Your MAC address is not collected at all; the add-on never reads
+          it, or any other hardware identifier. Your IP address and your KSP.log
+          are{" "}
           <strong className="text-foreground">not</strong> collected as a matter
-          of course, and none of them is part of the device binding. They are
+          of course either, and neither is part of the device binding. They are
           gathered in exactly one situation: a moderation report that you file
           yourself, about a device you did not recognise, where they exist for
           the moderators looking into it.

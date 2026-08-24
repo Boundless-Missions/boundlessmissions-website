@@ -47,9 +47,9 @@ export interface ActionResult {
 
 /** What the winner has to deliver — the same set the Discord command offers. */
 export const WORK_LABELS: Record<string, string> = {
-  craft_build: "Craft build — submit a blueprint from the VAB/SPH",
-  active_vessel: "Active mission — fly a craft to the target",
-  flag_design: "Flag design — submitted and reviewed in Discord",
+  craft_build: "Craft build: submit a blueprint from the VAB/SPH",
+  active_vessel: "Active mission: fly a craft to the target",
+  flag_design: "Flag design: submitted and reviewed in Discord",
 };
 
 async function authedFetch(input: string, init: RequestInit = {}): Promise<Response> {

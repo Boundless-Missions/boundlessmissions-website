@@ -16,6 +16,7 @@ import {
   AlertTriangle,
   Ban,
   Coins,
+  Fingerprint,
   Gauge,
   LayoutDashboard,
   Loader2,
@@ -42,13 +43,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
+  addCraftBan,
   adjustAdminUser,
+  backfillCraftHashes,
   bumpPolicy,
   deleteAdminListing,
   deleteAdminUser,
   editAdminListing,
   fetchAdminControls,
   fetchAdminCosts,
+  fetchCraftBans,
   fetchAdminGuilds,
   fetchAdminListings,
   fetchAdminAccess,
@@ -56,8 +60,10 @@ import {
   fetchModVersion,
   fetchOverview,
   logoutAllAdminUser,
+  previewCraftBan,
   publishModVersion,
   refreshAdminCosts,
+  revokeCraftBan,
   sendAdminAnnounce,
   sendAdminDm,
   setAdminControls,
@@ -71,6 +77,9 @@ import {
   type AdminOverview,
   type AdminSuspension,
   type AdminUserRow,
+  type CraftBan,
+  type CraftBanKind,
+  type CraftBanPreview,
   type ModVersionConfig,
 } from "@/lib/admin";
 import { formatCoins, formatScore, listingScore, type Listing } from "@/lib/marketplace";
@@ -79,6 +88,7 @@ import { cn } from "@/lib/utils";
 type Tab =
   | "overview"
   | "listings"
+  | "craftbans"
   | "users"
   | "messaging"
   | "channels"
@@ -89,6 +99,7 @@ type Tab =
 const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: "overview", label: "Overview", icon: <LayoutDashboard className="h-4 w-4" /> },
   { id: "listings", label: "Listings", icon: <Package className="h-4 w-4" /> },
+  { id: "craftbans", label: "Craft Bans", icon: <Fingerprint className="h-4 w-4" /> },
   { id: "users", label: "Users", icon: <Users className="h-4 w-4" /> },
   { id: "messaging", label: "Messaging", icon: <Megaphone className="h-4 w-4" /> },
   { id: "channels", label: "Channels", icon: <Lock className="h-4 w-4" /> },
@@ -98,7 +109,13 @@ const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
 ];
 
 // Bot-wide levers a guild role must never reach (mirrors the bot's get_owner).
-const OWNER_ONLY_TABS: ReadonlySet<Tab> = new Set(["users", "version", "costs", "controls"]);
+// A craft ban is keyed on a hash, and a hash is the same hash in every guild —
+// so it belongs with the bot-wide levers, not with the guild-scoped moderation a
+// mapped admin role reaches. The bot's get_owner is the real gate; this only
+// decides whether the tab is drawn.
+const OWNER_ONLY_TABS: ReadonlySet<Tab> = new Set([
+  "users", "craftbans", "version", "costs", "controls",
+]);
 
 export default function AdminPage() {
   const [gate, setGate] = useState<"checking" | "denied" | "ok">("checking");
@@ -186,6 +203,7 @@ export default function AdminPage() {
 
             {tab === "overview" && <OverviewTab data={overview} onRefresh={loadOverview} />}
             {tab === "listings" && <ListingsTab />}
+            {tab === "craftbans" && <CraftBansTab />}
             {tab === "users" && <UsersTab />}
             {tab === "messaging" && <MessagingTab guilds={guilds} isOwner={access?.is_owner === true} />}
             {tab === "channels" && <ChannelsTab guilds={guilds} onRefresh={loadGuilds} />}
@@ -333,6 +351,12 @@ function ListingsTab() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [editing, setEditing] = useState<Listing | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Listing | null>(null);
+  const [banning, setBanning] = useState<Listing | null>(null);
+  // A failed Delist/Delete is reported on its own row, not in the banner at the
+  // top: the list is as long as the market, so a moderator acting on row 40 sees
+  // the button do nothing and a message they have to scroll up to find — which
+  // reads as the action silently not working.
+  const [rowError, setRowError] = useState<{ id: string; message: string } | null>(null);
 
   const load = useCallback(async (query: string) => {
     setError(null);
@@ -351,12 +375,13 @@ function ListingsTab() {
   async function toggleStatus(l: Listing) {
     setBusyId(l.listing_id);
     setError(null);
+    setRowError(null);
     try {
       const next = l.status === "active" ? "delisted" : "active";
       const updated = await editAdminListing(l.listing_id, { status: next });
       setItems((cur) => (cur ?? []).map((x) => (x.listing_id === l.listing_id ? updated : x)));
     } catch (e) {
-      setError(errMsg(e, "Failed to change status."));
+      setRowError({ id: l.listing_id, message: errMsg(e, "Failed to change status.") });
     } finally {
       setBusyId(null);
     }
@@ -366,11 +391,14 @@ function ListingsTab() {
     const l = pendingDelete;
     if (!l) return;
     setBusyId(l.listing_id);
+    setError(null);
+    setRowError(null);
     try {
       await deleteAdminListing(l.listing_id);
       setItems((cur) => (cur ?? []).filter((x) => x.listing_id !== l.listing_id));
     } catch (e) {
-      setError(errMsg(e, "Failed to delete listing."));
+      // The dialog closes either way, so the row is the only place left to say it.
+      setRowError({ id: l.listing_id, message: errMsg(e, "Failed to delete listing.") });
     } finally {
       setBusyId(null);
       setPendingDelete(null);
@@ -405,8 +433,8 @@ function ListingsTab() {
       ) : (
         <div className="space-y-2">
           {items.map((l) => (
+            <div key={l.listing_id}>
             <div
-              key={l.listing_id}
               className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card px-4 py-3"
             >
               <div className="min-w-0 flex-1">
@@ -433,10 +461,19 @@ function ListingsTab() {
                 <Button size="sm" variant="outline" onClick={() => toggleStatus(l)} disabled={busyId === l.listing_id}>
                   {l.status === "active" ? "Delist" : "Relist"}
                 </Button>
+                {/* Delist takes down this listing; Ban takes down the craft,
+                    here and on every path it could come back through. */}
+                <Button size="sm" variant="outline" onClick={() => setBanning(l)} disabled={busyId === l.listing_id}>
+                  <Fingerprint className="h-3.5 w-3.5" /> Ban craft
+                </Button>
                 <Button size="sm" variant="destructive" onClick={() => setPendingDelete(l)} disabled={busyId === l.listing_id}>
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               </div>
+            </div>
+            {rowError?.id === l.listing_id && (
+              <p className="px-4 pt-1.5 text-sm text-destructive">{rowError.message}</p>
+            )}
             </div>
           ))}
         </div>
@@ -449,6 +486,19 @@ function ListingsTab() {
           onSaved={(updated) => {
             setItems((cur) => (cur ?? []).map((x) => (x.listing_id === updated.listing_id ? updated : x)));
             setEditing(null);
+          }}
+        />
+      )}
+
+      {banning && (
+        <BanCraftDialog
+          listing={banning}
+          onClose={() => setBanning(null)}
+          onBanned={() => {
+            setBanning(null);
+            // The ban sweeps matching listings, so the rows on screen are stale
+            // for more than the one that was banned.
+            load(q);
           }}
         />
       )}
@@ -549,6 +599,511 @@ function ListingEditDialog({
         </div>
       </div>
     </div>
+  );
+}
+
+// ── Craft bans ───────────────────────────────────────────────────────────────
+//
+// Delisting removes one listing. The file is still on the uploader's disk, and it
+// comes back under a new name, from a new account, in a different guild. A craft
+// ban is keyed on a hash of the craft itself, so the re-upload is refused instead
+// — on the marketplace, on quicksend and on contract submission alike.
+//
+// It is nuisance control and never a security boundary: a .craft is plain text,
+// and anyone willing to edit one gets past any hash. The UI says so rather than
+// implying a wall that isn't there.
+
+const BAN_KIND_COPY: Record<CraftBanKind, { title: string; blurb: string }> = {
+  exact: {
+    title: "Exact file",
+    blurb:
+      "The file byte for byte. No false positives, and no reach: a re-export from the game, or a single edited character, no longer matches.",
+  },
+  design: {
+    title: "Same design",
+    blurb:
+      "Every part and where it sits, to the centimetre. Survives a rename, a new description and a re-export — the usual way a craft comes back. The right choice for almost every ban.",
+  },
+  parts: {
+    title: "Same parts",
+    blurb:
+      "The parts list alone, positions ignored. Catches a banned craft with one part nudged, but can also catch a genuinely different ship built from the same parts. Check what it matches first.",
+  },
+};
+
+const SWEEP_COPY: Record<"delist" | "delete" | "none", string> = {
+  delist: "Delist matching listings (files, buyers' re-downloads and the seller's copy are kept)",
+  delete: "Delete matching listings and their files for good",
+  none: "Leave existing listings alone — only block future uploads",
+};
+
+function BanCraftDialog({
+  listing,
+  onClose,
+  onBanned,
+}: {
+  listing: Listing;
+  onClose: () => void;
+  onBanned: () => void;
+}) {
+  const [preview, setPreview] = useState<CraftBanPreview | null>(null);
+  const [kind, setKind] = useState<CraftBanKind>("design");
+  const [reason, setReason] = useState("");
+  const [note, setNote] = useState("");
+  const [sweep, setSweep] = useState<"delist" | "delete" | "none">("delist");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    previewCraftBan(listing.listing_id)
+      .then((p) => !cancelled && setPreview(p))
+      .catch((e) => !cancelled && setError(errMsg(e, "Could not read that craft to fingerprint it.")));
+    return () => {
+      cancelled = true;
+    };
+  }, [listing.listing_id]);
+
+  const chosen = preview?.kinds.find((k) => k.kind === kind) ?? null;
+
+  async function submit() {
+    setBusy(true);
+    setError(null);
+    try {
+      await addCraftBan({
+        listing_id: listing.listing_id,
+        kind,
+        reason: reason.trim(),
+        note: note.trim(),
+        label: listing.craft_name,
+        sweep,
+      });
+      onBanned();
+    } catch (e) {
+      setError(errMsg(e, "Failed to ban this craft."));
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+      onClick={() => !busy && onClose()}
+    >
+      <div
+        className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-xl border border-border bg-card p-6 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 className="font-semibold">Ban this craft</h2>
+        <p className="mb-4 mt-1 text-sm text-muted-foreground">
+          <span className="text-foreground">&ldquo;{listing.craft_name}&rdquo;</span> by{" "}
+          {listing.seller_name}. Blocks it from being listed, quicksent or submitted again — by
+          anyone, in any server.
+        </p>
+        <ErrorBanner message={error} />
+
+        {preview === null ? (
+          <Spinner />
+        ) : (
+          <>
+            <p className="mb-2 text-xs text-muted-foreground">
+              {preview.part_count} parts, {preview.distinct_parts} distinct.
+            </p>
+            <FieldLabel>What to match on</FieldLabel>
+            <div className="mb-4 space-y-2">
+              {preview.kinds.map((c) => (
+                <button
+                  key={c.kind}
+                  type="button"
+                  onClick={() => setKind(c.kind)}
+                  className={cn(
+                    "w-full rounded-lg border px-3 py-2.5 text-left transition",
+                    kind === c.kind
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:border-muted-foreground/40",
+                  )}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">{BAN_KIND_COPY[c.kind].title}</span>
+                    <Badge variant={c.matches > 1 ? "outline" : "secondary"} className="tabular-nums">
+                      {c.matches} listing{c.matches === 1 ? "" : "s"}
+                    </Badge>
+                    {c.already_banned && <Badge variant="outline">already banned</Badge>}
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">{BAN_KIND_COPY[c.kind].blurb}</p>
+                  {c.matches > 1 && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Matches: {c.match_names.filter(Boolean).join(", ")}
+                    </p>
+                  )}
+                  <p className="mt-1 truncate font-mono text-[11px] text-muted-foreground">{c.hash}</p>
+                </button>
+              ))}
+            </div>
+
+            {kind === "parts" && (chosen?.matches ?? 0) > 1 && (
+              <NoticeBanner
+                message={`This would take down ${chosen?.matches} listings. "Same parts" ignores where the parts sit, so check the names above are all the same craft.`}
+              />
+            )}
+
+            <div className="space-y-3">
+              <div>
+                <FieldLabel>Reason (shown to whoever tries to upload it)</FieldLabel>
+                <input
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  placeholder="Reuploaded someone else's design"
+                  className="filter-input"
+                />
+              </div>
+              <div>
+                <FieldLabel>Note (internal, never sent)</FieldLabel>
+                <input
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  placeholder="Ticket #412"
+                  className="filter-input"
+                />
+              </div>
+              <div>
+                <FieldLabel>Listings already up</FieldLabel>
+                <select
+                  value={sweep}
+                  onChange={(e) => setSweep(e.target.value as typeof sweep)}
+                  className="filter-input"
+                >
+                  {(Object.keys(SWEEP_COPY) as (keyof typeof SWEEP_COPY)[]).map((k) => (
+                    <option key={k} value={k}>
+                      {SWEEP_COPY[k]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </>
+        )}
+
+        <div className="mt-5 flex justify-end gap-2">
+          <Button variant="outline" onClick={onClose} disabled={busy}>
+            Cancel
+          </Button>
+          <Button variant="destructive" onClick={submit} disabled={busy || preview === null}>
+            {busy && <Loader2 className="h-4 w-4 animate-spin" />} Ban craft
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CraftBansTab() {
+  const [bans, setBans] = useState<CraftBan[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [busyHash, setBusyHash] = useState<string | null>(null);
+  const [pendingRevoke, setPendingRevoke] = useState<CraftBan | null>(null);
+  const [showAdd, setShowAdd] = useState(false);
+
+  const load = useCallback(async () => {
+    setError(null);
+    try {
+      setBans(await fetchCraftBans());
+    } catch (e) {
+      setError(errMsg(e, "Failed to load craft bans."));
+      setBans([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  async function confirmRevoke() {
+    const b = pendingRevoke;
+    if (!b) return;
+    setBusyHash(b.hash);
+    setError(null);
+    try {
+      await revokeCraftBan(b.hash);
+      setNotice(
+        `Ban lifted. Listings it took down stay delisted — their sellers can put them back up.`,
+      );
+      await load();
+    } catch (e) {
+      setError(errMsg(e, "Failed to lift the ban."));
+    } finally {
+      setBusyHash(null);
+      setPendingRevoke(null);
+    }
+  }
+
+  async function backfill() {
+    setBusyHash("backfill");
+    setError(null);
+    setNotice(null);
+    try {
+      const r = await backfillCraftHashes(100);
+      setNotice(
+        `Fingerprinted ${r.updated} listing${r.updated === 1 ? "" : "s"}` +
+          (r.failed ? `, ${r.failed} failed` : "") +
+          (r.remaining ? `. ${r.remaining} still to do — run it again.` : ". Nothing left to do."),
+      );
+    } catch (e) {
+      setError(errMsg(e, "Backfill failed."));
+    } finally {
+      setBusyHash(null);
+    }
+  }
+
+  const active = (bans ?? []).filter((b) => b.active);
+  const lifted = (bans ?? []).filter((b) => !b.active);
+
+  return (
+    <div>
+      <ErrorBanner message={error} />
+      <NoticeBanner message={notice} />
+
+      <Card className="mb-4">
+        <CardContent className="space-y-2 p-4 text-sm text-muted-foreground">
+          <p>
+            A craft ban blocks a <span className="text-foreground">file</span>, not a listing and not
+            a person. Once banned, the same craft is refused when it is listed for sale, quicksent to
+            a friend or submitted against a contract, whoever is uploading it and wherever they are.
+          </p>
+          <p>
+            It is not a wall. A .craft is plain text — anyone willing to open one in an editor and
+            move a part will get past any hash of it. What this stops is the file being passed around
+            and re-uploaded, which is what actually happens.
+          </p>
+          <p>Most bans start from the Listings tab: find the craft, press Ban craft.</p>
+        </CardContent>
+      </Card>
+
+      <div className="mb-4 flex flex-wrap gap-2">
+        <Button variant="outline" size="sm" onClick={() => setShowAdd((v) => !v)}>
+          <Ban className="h-4 w-4" /> Ban by hash
+        </Button>
+        <Button variant="outline" size="sm" onClick={load}>
+          <RefreshCw className="h-4 w-4" /> Refresh
+        </Button>
+        {/* One Storage download per listing, so it is a button and not a sweep on
+            a timer. Only listings uploaded before fingerprinting existed need it. */}
+        <Button variant="ghost" size="sm" onClick={backfill} disabled={busyHash === "backfill"}>
+          {busyHash === "backfill" && <Loader2 className="h-4 w-4 animate-spin" />} Fingerprint old
+          listings
+        </Button>
+      </div>
+
+      {showAdd && (
+        <AddCraftBanCard
+          onClose={() => setShowAdd(false)}
+          onAdded={(msg) => {
+            setShowAdd(false);
+            setNotice(msg);
+            load();
+          }}
+        />
+      )}
+
+      {bans === null ? (
+        <Spinner />
+      ) : bans.length === 0 ? (
+        <p className="py-12 text-center text-sm text-muted-foreground">No crafts are banned.</p>
+      ) : (
+        <div className="space-y-4">
+          {[
+            { label: "In force", rows: active },
+            { label: "Lifted", rows: lifted },
+          ]
+            .filter((g) => g.rows.length > 0)
+            .map((g) => (
+              <div key={g.label}>
+                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  {g.label}
+                </p>
+                <div className="space-y-2">
+                  {g.rows.map((b) => (
+                    <div
+                      key={b.hash}
+                      className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card px-4 py-3"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-medium">
+                          {b.label || "(unnamed craft)"}{" "}
+                          <span className="text-sm font-normal text-muted-foreground">
+                            {b.reason ? `— ${b.reason}` : ""}
+                          </span>
+                        </p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          by {b.by} · {b.created_at?.slice(0, 10)}
+                          {b.note ? ` · ${b.note}` : ""} ·{" "}
+                          <span className="font-mono">{b.hash.slice(0, 16)}…</span>
+                        </p>
+                      </div>
+                      <Badge variant="secondary">{BAN_KIND_COPY[b.kind]?.title ?? b.kind}</Badge>
+                      {/* Whether it is still doing anything: a ban with no hits in a
+                          year is a line in a list, not a rule anyone is testing. */}
+                      <Badge variant="outline" className="tabular-nums">
+                        {b.hits} blocked
+                      </Badge>
+                      {b.active ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setPendingRevoke(b)}
+                          disabled={busyHash === b.hash}
+                        >
+                          <LockOpen className="h-3.5 w-3.5" /> Lift
+                        </Button>
+                      ) : (
+                        <Badge variant="outline">lifted by {b.revoked_by || "?"}</Badge>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+        </div>
+      )}
+
+      {pendingRevoke && (
+        <ConfirmDialog
+          title="Lift this craft ban?"
+          description={
+            <>
+              <span className="font-medium text-foreground">
+                &ldquo;{pendingRevoke.label || pendingRevoke.hash.slice(0, 12)}&rdquo;
+              </span>{" "}
+              can be uploaded again. Listings the ban took down are not put back up — their sellers
+              relist them themselves.
+            </>
+          }
+          confirmLabel="Lift ban"
+          busy={busyHash === pendingRevoke.hash}
+          onConfirm={confirmRevoke}
+          onCancel={() => setPendingRevoke(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+/** Ban a hash somebody handed you, with no listing to take it from. The console's
+ *  fallback path — the ordinary one is the Listings tab's Ban craft button, which
+ *  can show what the hash actually matches before it is used. */
+function AddCraftBanCard({
+  onClose,
+  onAdded,
+}: {
+  onClose: () => void;
+  onAdded: (notice: string) => void;
+}) {
+  const [hash, setHash] = useState("");
+  const [kind, setKind] = useState<CraftBanKind>("design");
+  const [label, setLabel] = useState("");
+  const [reason, setReason] = useState("");
+  const [note, setNote] = useState("");
+  const [sweep, setSweep] = useState<"delist" | "delete" | "none">("delist");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const clean = hash.trim().toLowerCase();
+  const valid = /^[0-9a-f]{64}$/.test(clean);
+
+  async function submit() {
+    setBusy(true);
+    setError(null);
+    try {
+      const r = await addCraftBan({
+        hash: clean,
+        kind,
+        label: label.trim(),
+        reason: reason.trim(),
+        note: note.trim(),
+        sweep,
+      });
+      onAdded(
+        `Craft banned.` +
+          (r.matched ? ` ${r.matched} matching listing${r.matched === 1 ? "" : "s"} taken down.` : ""),
+      );
+    } catch (e) {
+      setError(errMsg(e, "Failed to add the ban."));
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Card className="mb-4">
+      <CardContent className="space-y-3 p-4">
+        <ErrorBanner message={error} />
+        <div>
+          <FieldLabel>Craft hash (sha256, 64 hex characters)</FieldLabel>
+          <input
+            value={hash}
+            onChange={(e) => setHash(e.target.value)}
+            placeholder="e3b0c44298fc1c14…"
+            className="filter-input font-mono"
+          />
+          {hash.trim() !== "" && !valid && (
+            <p className="mt-1 text-xs text-destructive">That is not a 64-character sha256 hash.</p>
+          )}
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <FieldLabel>What it matches on</FieldLabel>
+            <select
+              value={kind}
+              onChange={(e) => setKind(e.target.value as CraftBanKind)}
+              className="filter-input"
+            >
+              {(Object.keys(BAN_KIND_COPY) as CraftBanKind[]).map((k) => (
+                <option key={k} value={k}>
+                  {BAN_KIND_COPY[k].title}
+                </option>
+              ))}
+            </select>
+            {/* The kind is part of the key, not a note on it: a hash filed under
+                the wrong one silently never matches anything. */}
+            <p className="mt-1 text-xs text-muted-foreground">{BAN_KIND_COPY[kind].blurb}</p>
+          </div>
+          <div>
+            <FieldLabel>Craft name (for this list)</FieldLabel>
+            <input value={label} onChange={(e) => setLabel(e.target.value)} className="filter-input" />
+          </div>
+        </div>
+        <div>
+          <FieldLabel>Reason (shown to whoever tries to upload it)</FieldLabel>
+          <input value={reason} onChange={(e) => setReason(e.target.value)} className="filter-input" />
+        </div>
+        <div>
+          <FieldLabel>Note (internal)</FieldLabel>
+          <input value={note} onChange={(e) => setNote(e.target.value)} className="filter-input" />
+        </div>
+        <div>
+          <FieldLabel>Listings already up</FieldLabel>
+          <select
+            value={sweep}
+            onChange={(e) => setSweep(e.target.value as typeof sweep)}
+            className="filter-input"
+          >
+            {(Object.keys(SWEEP_COPY) as (keyof typeof SWEEP_COPY)[]).map((k) => (
+              <option key={k} value={k}>
+                {SWEEP_COPY[k]}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" size="sm" onClick={onClose} disabled={busy}>
+            Cancel
+          </Button>
+          <Button variant="destructive" size="sm" onClick={submit} disabled={busy || !valid}>
+            {busy && <Loader2 className="h-4 w-4 animate-spin" />} Ban craft
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -789,7 +1344,7 @@ function SuspensionNote({ s }: { s: AdminSuspension }) {
       </p>
       <p className="mt-1 text-muted-foreground">
         {s.reason || "(no reason recorded)"}
-        {s.by && <span className="ml-1 opacity-70">— by {s.by}</span>}
+        {s.by && <span className="ml-1 opacity-70">by {s.by}</span>}
       </p>
     </div>
   );
@@ -839,7 +1394,7 @@ function SuspendDialog({
       onDone(
         { ...user, suspension: res.suspension },
         `${user.username || user.user_id} is suspended for ${humaniseDuration(parsed * 3600)}` +
-          (notify ? (res.notified ? " and has been DMed." : " — but the DM could not be delivered.") : "."),
+          (notify ? (res.notified ? " and has been DMed." : ", but the DM could not be delivered.") : "."),
       );
     } catch (e) {
       setError(errMsg(e, "Failed to suspend."));
@@ -859,7 +1414,7 @@ function SuspendDialog({
         <h2 className="mb-1 font-semibold">Suspend {user.username || user.user_id}</h2>
         <p className="mb-4 text-xs text-muted-foreground">
           Blocks the KSP mod and this website until it expires. Their Discord membership,
-          balance, XP, contracts and listings are untouched — for a permanent removal use a
+          balance, XP, contracts and listings are untouched. For a permanent removal use a
           Discord ban instead.
         </p>
         <ErrorBanner message={error} />

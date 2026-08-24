@@ -519,3 +519,104 @@ export async function bumpPolicy(body: {
     }),
   );
 }
+
+// ── Craft bans ───────────────────────────────────────────────────────────────
+//
+// Owner-only. A craft ban is keyed on a hash of the craft rather than on a
+// listing or a person, so it survives the file being re-uploaded — see the bot's
+// data/craft_bans.py for what each of the three fingerprints does and does not
+// survive.
+
+export type CraftBanKind = "exact" | "design" | "parts";
+
+export interface CraftBan {
+  hash: string;
+  kind: CraftBanKind;
+  /** Shown verbatim to the player whose upload is refused. */
+  reason: string;
+  /** Internal; never leaves the console. */
+  note: string;
+  /** What the craft was called when it was banned. */
+  label: string;
+  listing_id: string;
+  by: string;
+  created_at: string;
+  active: boolean;
+  revoked_at: string | null;
+  revoked_by: string | null;
+  /** How many uploads this ban has actually refused — whether it still earns its
+   *  place in the list. */
+  hits: number;
+  last_hit_at: string | null;
+}
+
+/** One of the three hashes a craft can be banned by, and what it would take
+ *  down right now. Read before issuing a ban, never after. */
+export interface CraftBanCandidate {
+  kind: CraftBanKind;
+  hash: string;
+  matches: number;
+  match_names: string[];
+  already_banned: boolean;
+}
+
+export interface CraftBanPreview {
+  listing_id: string;
+  craft_name: string;
+  seller_name: string;
+  kinds: CraftBanCandidate[];
+  part_count: number;
+  distinct_parts: number;
+}
+
+export async function fetchCraftBans(): Promise<CraftBan[]> {
+  const data = await jsonOrThrow<{ bans: CraftBan[] }>(await authedFetch("/api/admin/craftbans"));
+  return data.bans ?? [];
+}
+
+/** Fingerprint a listing's craft without banning anything. */
+export async function previewCraftBan(listingId: string): Promise<CraftBanPreview> {
+  return jsonOrThrow(
+    await authedFetch(`/api/admin/craftbans/preview?listing_id=${encodeURIComponent(listingId)}`),
+  );
+}
+
+/**
+ * Ban a craft. Give either `listing_id` (the craft is fetched and fingerprinted
+ * on the bot) or a bare `hash`. `sweep` decides what happens to listings already
+ * up that match — "delist" keeps the files and every buyer's re-download.
+ */
+export async function addCraftBan(body: {
+  hash?: string;
+  listing_id?: string;
+  kind: CraftBanKind;
+  reason: string;
+  note?: string;
+  label?: string;
+  sweep?: "delist" | "delete" | "none";
+}): Promise<{ ban: CraftBan; matched: number; delisted: string[]; deleted: string[] }> {
+  return jsonOrThrow(
+    await authedFetch("/api/admin/craftbans", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    }),
+  );
+}
+
+/** Lift a ban. Listings it took down are not put back up — the seller relists. */
+export async function revokeCraftBan(hash: string): Promise<void> {
+  await jsonOrThrow(
+    await authedFetch(`/api/admin/craftbans/${encodeURIComponent(hash)}`, { method: "DELETE" }),
+  );
+}
+
+/** Fingerprint listings uploaded before fingerprinting existed. One Storage
+ *  download per listing, so it is capped and reports what is left. */
+export async function backfillCraftHashes(
+  limit = 100,
+): Promise<{ updated: number; failed: number; remaining: number }> {
+  return jsonOrThrow(
+    await authedFetch(`/api/admin/craftbans/backfill?limit=${limit}`, { method: "POST" }),
+  );
+}

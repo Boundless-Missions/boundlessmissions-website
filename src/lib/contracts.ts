@@ -104,6 +104,23 @@ export const answerSettle = (id: string, approve: boolean) =>
 export const answerMoreTime = (id: string, approve: boolean) =>
   post(id, "more_time_response", { approve });
 
+/**
+ * Report the other party of a contract to the moderators.
+ *
+ * Not a `post()` call, and not an ActionResult: this changes nothing about the
+ * contract. A refusal here — you already reported it, the other party is the bot —
+ * is an HTTP failure with a sentence to show, not a 200 with `success: false`, so it
+ * throws like every other non-transition call.
+ */
+export async function reportContract(id: string, reason: string): Promise<{ message: string }> {
+  const res = await authedFetch(`/api/contracts/${encodeURIComponent(id)}/report`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ reason }),
+  });
+  return jsonOrThrow<{ message: string }>(res);
+}
+
 // ── Commands to a running game ───────────────────────────────────────────────
 
 export interface CommandResult extends ActionResult {

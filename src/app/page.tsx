@@ -158,17 +158,13 @@ export default function HomePage() {
                 <span className="h-1.5 w-1.5 rounded-full bg-primary" />
                 Discord bot + KSP add-on
               </Badge>
-              <h1 className="text-balance text-4xl font-bold tracking-tight sm:text-6xl">
-                Players hire players to{" "}
-                <span className="text-gradient">
-                  build ships and fly missions
-                </span>
+              <h1 className="text-balance text-4xl font-bold tracking-tight sm:text-6xl text-gradient">
+                Uniting The KSP Community
               </h1>
               <p className="mx-auto mt-6 max-w-2xl text-pretty text-lg leading-relaxed text-muted-foreground">
                 Boundless Missions turns a Kerbal Space Program community into a
-                working space industry. A contract&rsquo;s reward is held in
-                escrow until the job lands, and the finished craft is delivered
-                straight into the buyer&rsquo;s save.
+                working space industry. Players can create contracts to get others to design crafts or fly them to locations of interest.
+                Corporations can work together, players can auction off their services, and everyone gets a little something for their troubles.
               </p>
               <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
                 <Button asChild size="lg">
