@@ -50,8 +50,9 @@ interface ListingCardProps {
   onRelist?: (l: Listing) => void;
   /** When set, shows a permanent-Delete button (My Uploads). */
   onDelete?: (l: Listing) => void;
-  /** Direct .craft download URL (My Purchases / after buying). */
-  downloadUrl?: string | null;
+  /** Whether to offer the .craft download (My Purchases / after buying). The
+   *  link carries the listing id, not a URL — the proxy mints the signature. */
+  canDownload?: boolean;
   busy?: boolean;
 }
 
@@ -62,7 +63,7 @@ export function ListingCard({
   onDelist,
   onRelist,
   onDelete,
-  downloadUrl,
+  canDownload,
   busy,
 }: ListingCardProps) {
   const delisted = listing.status !== "active";
@@ -184,7 +185,7 @@ export function ListingCard({
       <CardFooter
         className={cn(
           "flex-wrap gap-2 p-4 pt-0",
-          !onBuy && !onDelist && !onRelist && !onDelete && !downloadUrl && "hidden",
+          !onBuy && !onDelist && !onRelist && !onDelete && !canDownload && "hidden",
         )}
       >
         {onBuy && !delisted && (
@@ -192,9 +193,9 @@ export function ListingCard({
             <ShoppingCart /> Buy
           </Button>
         )}
-        {downloadUrl && (
+        {canDownload && (
           <Button asChild variant="outline" className="flex-1">
-            <a href={craftDownloadHref(downloadUrl, listing.craft_filename || `${listing.craft_name}.craft`)}>
+            <a href={craftDownloadHref(listing.listing_id)}>
               <Download /> Download
             </a>
           </Button>
@@ -230,7 +231,7 @@ export function ListingCard({
           onDelist={onDelist}
           onRelist={onRelist}
           onDelete={onDelete}
-          downloadUrl={downloadUrl}
+          canDownload={canDownload}
           busy={busy}
         />
       )}

@@ -133,6 +133,10 @@ export interface Profile {
   level: number;
   balance: number;
   currency_name: string;
+  /** Unpaid contract fines. 0 for almost everyone. */
+  debt: number;
+  /** Share of earnings currently going to those fines; 0 when nothing is owed. */
+  debt_garnish_percent: number;
 }
 
 export interface BuyResult {
@@ -338,14 +342,18 @@ export function formatCoins(n: number): string {
 }
 
 /**
- * Same-origin href that forces a download of a craft file. The raw `craft_url`
- * points at public GCS (served as text/plain), which the browser renders inline;
- * routing through our proxy re-serves it as an attachment so it actually saves.
+ * Same-origin href that forces a download of a craft file. The stored craft is
+ * served as text/plain, which the browser renders inline; routing through our
+ * proxy re-serves it as an attachment so it actually saves.
+ *
+ * Deliberately the listing id and nothing else. The signed `craft_url` used to be
+ * the parameter, which put a 7-day GCS bearer credential into a URL — i.e. into
+ * history, autofill and every request log — and left the route usable by anyone
+ * who saw one. The proxy now asks the bot for the signature itself, against the
+ * caller's own session.
  */
-export function craftDownloadHref(craftUrl: string, filename?: string | null): string {
-  const p = new URLSearchParams({ url: craftUrl });
-  if (filename) p.set("name", filename);
-  return `/api/marketplace/download?${p.toString()}`;
+export function craftDownloadHref(listingId: string): string {
+  return `/api/marketplace/download?id=${encodeURIComponent(listingId)}`;
 }
 
 // ── CKAN file → mod selection ────────────────────────────────────────────────

@@ -1,7 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { Loader2, Gavel, Clock, AlertTriangle, Gamepad2, Flag } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  Loader2, Gavel, Clock, AlertTriangle, Gamepad2, Flag, Upload, Download,
+} from "lucide-react";
 
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -21,9 +23,15 @@ import {
   answerMoreTime,
   reportContract,
   openSubmitInKsp,
+  submitFlag,
+  fetchFlag,
   formatInstant,
   tomorrow,
   STATUS_LABELS,
+  MISSION_TYPE_LABELS,
+  FLAG_DESIGN,
+  FLAG_ACCEPT,
+  FLAG_MAX_BYTES,
   type Contract,
 } from "@/lib/contracts";
 import { cn } from "@/lib/utils";
@@ -74,8 +82,9 @@ export default function ContractsPage() {
       <main className="container flex-1 py-8">
         <h1 className="mb-2 text-3xl font-bold tracking-tight">My Contracts</h1>
         <p className="mb-6 text-sm text-muted-foreground">
-          Everything you have issued or accepted. Submitting work still happens in KSP,
-          because it needs telemetry and a screenshot from the running game.
+          Everything you have issued or accepted. Submitting work happens in KSP, because
+          it needs telemetry and a screenshot from the running game. The exception is a flag
+          design, which is only an image and is uploaded here.
         </p>
 
         {signedIn === null ? (
@@ -133,6 +142,172 @@ export default function ContractsPage() {
   );
 }
 
+/**
+ * Pick a flag image and hand it over.
+ *
+ * The local preview is the point of the form: a flag is judged by eye and this is
+ * the last moment before it becomes a submission — the contract leaves ACTIVE the
+ * instant the upload lands, so there is no "replace it" afterwards, only a dispute.
+ * The type and size are checked here as well as on the server, not instead of it:
+ * the server's answer is the real one, but it arrives after 8 MB have been sent.
+ */
+function FlagUpload({
+  busy,
+  submitting,
+  onSubmit,
+}: {
+  busy: boolean;
+  submitting: boolean;
+  onSubmit: (file: File) => void;
+}) {
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [problem, setProblem] = useState<string | null>(null);
+  const input = useRef<HTMLInputElement>(null);
+
+  // An object URL is a document-lifetime handle, so it is revoked when this form
+  // goes away or picks a different file — otherwise every re-pick leaks a copy of
+  // the image for as long as the tab is open.
+  useEffect(() => {
+    if (!file) {
+      setPreview(null);
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    setPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
+
+  function choose(picked: File | null) {
+    setProblem(null);
+    if (!picked) {
+      setFile(null);
+      return;
+    }
+    if (!FLAG_ACCEPT.split(",").includes(picked.type)) {
+      setFile(null);
+      setProblem("A flag must be a PNG, JPEG or WebP image.");
+      return;
+    }
+    if (picked.size > FLAG_MAX_BYTES) {
+      setFile(null);
+      setProblem(`That image is ${(picked.size / (1024 * 1024)).toFixed(1)} MB; the limit is `
+        + `${FLAG_MAX_BYTES / (1024 * 1024)} MB.`);
+      return;
+    }
+    setFile(picked);
+  }
+
+  return (
+    <div className="rounded-md border border-border bg-muted/30 p-3">
+      <p className="text-xs font-medium">Submit the flag</p>
+      <p className="mt-1 text-xs text-muted-foreground">
+        PNG, JPEG or WebP, up to {FLAG_MAX_BYTES / (1024 * 1024)} MB. KSP renders flags
+        at 4:1, and 1024×256 is the usual size. Submitting is final: the contract goes to
+        the issuer for review and cannot be re-uploaded.
+      </p>
+
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <input
+          ref={input}
+          type="file"
+          accept={FLAG_ACCEPT}
+          className="hidden"
+          onChange={(e) => choose(e.target.files?.[0] ?? null)}
+        />
+        <Button size="sm" variant="outline" disabled={busy}
+                onClick={() => input.current?.click()}>
+          <Upload className="mr-1 h-4 w-4" />
+          {file ? "Choose another" : "Choose an image"}
+        </Button>
+        {file && (
+          <Button size="sm" disabled={busy} onClick={() => onSubmit(file)}>
+            {submitting && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
+            Submit flag
+          </Button>
+        )}
+      </div>
+
+      {problem && <p className="mt-2 text-xs text-destructive">{problem}</p>}
+      {preview && (
+        <div className="mt-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={preview} alt="The flag you are about to submit"
+               className="max-h-40 rounded border border-border bg-background object-contain" />
+          <p className="mt-1 text-xs text-muted-foreground">{file?.name}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * The submitted flag, as this reader is allowed to see it.
+ *
+ * The watermarked preview is public and already on the contract, so it paints with
+ * no extra call. The clean full-res file is a signed, short-lived URL and is minted
+ * only when someone asks for it — a button rather than an automatic fetch, so the
+ * page does not sign a link per contract that nobody opens.
+ */
+function FlagPanel({ contract: c, previewUrl }: { contract: Contract; previewUrl: string }) {
+  const [full, setFull] = useState<{ url: string; filename: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const paid = c.status === "completed";
+
+  async function getFull() {
+    setBusy(true);
+    setError(null);
+    try {
+      const f = await fetchFlag(c.contract_id);
+      // `watermarked` is the server's answer about which image this is, and it is
+      // the only one worth trusting: a page holding a status from before a review
+      // would otherwise offer the preview as the full-res file.
+      if (f.url && !f.watermarked) setFull({ url: f.url, filename: f.filename });
+      else setError("The full-res flag isn't available yet.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="rounded-md border border-border bg-muted/30 p-3">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={full?.url ?? previewUrl}
+           alt={full ? "The delivered flag" : "Watermarked preview of the submitted flag"}
+           className="max-h-48 rounded border border-border bg-background object-contain" />
+      <p className="mt-2 text-xs text-muted-foreground">
+        {paid
+          ? "Delivered. The flag is also queued to the issuer's in-game flag picker."
+          : c.is_outgoing
+            ? "Preview only, stamped and downscaled. Accepting the submission pays the"
+              + " contractor and hands over the clean full-res file."
+            : "This is the watermarked copy the issuer reviews. Your original is kept"
+              + " private until they accept."}
+      </p>
+
+      {paid && c.is_outgoing && !full && (
+        <Button size="sm" variant="outline" className="mt-2" disabled={busy} onClick={getFull}>
+          {busy ? <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                : <Download className="mr-1 h-4 w-4" />}
+          Get the full-res flag
+        </Button>
+      )}
+      {full && (
+        <a href={full.url} download={full.filename} target="_blank" rel="noreferrer"
+           className="mt-2 inline-flex items-center gap-1.5 text-xs text-primary hover:underline">
+          <Download className="h-3.5 w-3.5" />
+          Download {full.filename}
+        </a>
+      )}
+      {error && <p className="mt-2 text-xs text-destructive">{error}</p>}
+    </div>
+  );
+}
+
 function ContractCard({ contract: c, onActed }: { contract: Contract; onActed: () => void }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
@@ -180,6 +355,10 @@ function ContractCard({ contract: c, onActed }: { contract: Contract; onActed: (
 
   const id = c.contract_id;
   const req = c.pending_request;
+  const isFlag = c.mission_type === FLAG_DESIGN;
+  const typeLabel = c.mission_type === "active_vessel"
+    ? null
+    : MISSION_TYPE_LABELS[c.mission_type] ?? null;
   const actions: React.ReactNode[] = [];
   let extra: React.ReactNode = null;
 
@@ -199,19 +378,35 @@ function ContractCard({ contract: c, onActed }: { contract: Contract; onActed: (
       );
     }
   } else if (c.status === "active" && !c.is_outgoing) {
+    if (!isFlag) {
+      actions.push(
+        // Not a submission — the page has no telemetry and no screenshot. This asks the
+        // running game to offer its submit window, which the player accepts in KSP.
+        <Button key="submit" size="sm" disabled={busy !== null}
+                onClick={() => run("submit", () => openSubmitInKsp(id))}>
+          {busy === "submit"
+            ? <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+            : <Gamepad2 className="mr-1 h-4 w-4" />}
+          Submit in KSP
+        </Button>,
+      );
+    }
     actions.push(
-      // Not a submission — the page has no telemetry and no screenshot. This asks the
-      // running game to offer its submit window, which the player accepts in KSP.
-      <Button key="submit" size="sm" disabled={busy !== null}
-              onClick={() => run("submit", () => openSubmitInKsp(id))}>
-        {busy === "submit"
-          ? <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-          : <Gamepad2 className="mr-1 h-4 w-4" />}
-        Submit in KSP
-      </Button>,
       danger("give_up", "Give up", `Confirm: you pay the ${c.fine.toLocaleString()} fine`, () =>
         run("give_up", () => giveUpContract(id))),
     );
+    // A flag has no in-game submit window to open — the mod's submit screen reads a
+    // craft and a flight, and this contract has neither. So the upload is the action,
+    // and it gets a form of its own rather than a button in the row.
+    if (isFlag) {
+      extra = (
+        <FlagUpload
+          busy={busy !== null}
+          onSubmit={(file) => run("submit_flag", () => submitFlag(id, file))}
+          submitting={busy === "submit_flag"}
+        />
+      );
+    }
   } else if (c.status === "submitted" && c.is_outgoing) {
     actions.push(
       <Button key="approve" size="sm" disabled={busy !== null}
@@ -337,9 +532,23 @@ function ContractCard({ contract: c, onActed }: { contract: Contract; onActed: (
               {" · "}due {c.due_date}
             </p>
           </div>
-          <Badge variant="outline" className={cn(STATUS_STYLES[c.status])}>
-            {STATUS_LABELS[c.status] ?? c.status}
-          </Badge>
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            {/* Only the types that change what you have to do. `active_vessel` is
+                also what an untyped contract reads as server-side, so a "Flight"
+                badge on every old contract would be noise at best and wrong at
+                worst — where the label earns its place is a flag design, which is
+                delivered from the browser rather than from the game. Text only: the
+                report link at the foot of the card already spends the flag glyph on
+                "report this". */}
+            {typeLabel && (
+              <Badge variant="outline" className="border-border text-muted-foreground">
+                {typeLabel}
+              </Badge>
+            )}
+            <Badge variant="outline" className={cn(STATUS_STYLES[c.status])}>
+              {STATUS_LABELS[c.status] ?? c.status}
+            </Badge>
+          </div>
         </div>
 
         <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground">
@@ -371,14 +580,25 @@ function ContractCard({ contract: c, onActed }: { contract: Contract; onActed: (
         )}
         {c.status === "active" && !c.is_outgoing && (
           <p className="text-sm text-muted-foreground">
-            Submitting happens in KSP. The button below asks your running game to open
-            the submit window for this contract.
+            {isFlag
+              ? `Upload the flag below. ${c.issuer_name} reviews a watermarked copy; the`
+                + " clean full-res file is only handed over when they accept, and lands in"
+                + " their in-game flag picker."
+              : "Submitting happens in KSP. The button below asks your running game to open"
+                + " the submit window for this contract."}
           </p>
         )}
         {c.status === "mod_review" && (
           <p className="text-sm text-muted-foreground">
             Escalated: moderators are reviewing this case on Discord.
           </p>
+        )}
+
+        {/* Above the buttons on purpose: an issuer pressing Approve is buying this
+            image, and the review is the one place it must not be a link they might
+            not follow. */}
+        {isFlag && c.flag_preview_url && (
+          <FlagPanel contract={c} previewUrl={c.flag_preview_url} />
         )}
 
         {actions.length > 0 && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
@@ -414,7 +634,7 @@ function ContractCard({ contract: c, onActed }: { contract: Contract; onActed: (
             subject={
               <>
                 <span className="font-medium text-foreground">{otherParty}</span>
-                {c.is_outgoing ? " — the contractor on " : " — the issuer of "}
+                {c.is_outgoing ? ", the contractor on " : ", the issuer of "}
                 &ldquo;{c.mission.length > 80 ? c.mission.slice(0, 80) + "…" : c.mission}&rdquo;
               </>
             }
@@ -425,7 +645,7 @@ function ContractCard({ contract: c, onActed }: { contract: Contract; onActed: (
                 This opens a private ticket in Discord with a moderator pinged. The
                 contract, both parties and your Discord account are attached to it.
                 {c.status === "disputed"
-                  ? " A refused submission on its own is not a report — Settle, Ask for more time and Sue are the buttons for that."
+                  ? " A refused submission on its own is not a report; Settle, Ask for more time and Sue are the buttons for that."
                   : " A late delivery or a disagreement about the work is not a report; use the dispute buttons for those."}
               </>
             }

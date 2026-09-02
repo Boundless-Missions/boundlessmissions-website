@@ -190,6 +190,16 @@ export default function ContractsPage() {
               The contractor submits from inside KSP. What goes with it depends
               on the kind: the craft file and a rendered blueprint for a build,
               the live vessel telemetry for a flight, screenshots either way.
+              None of that exists in a browser, which is why submitting is the
+              one contract action this website cannot do for you.
+            </p>
+            <p>
+              A flag design is the exception, and it is uploaded here or in
+              Discord rather than in the game: its whole deliverable is an
+              image, so there is nothing for the game to read. The issuer
+              reviews a watermarked, downscaled copy; the clean full-res file is
+              handed over only when they accept, and lands in their in-game flag
+              picker.
             </p>
           </Step>
           <Step n={4} title="Completed, or disputed">
@@ -237,7 +247,7 @@ export default function ContractsPage() {
           Suing and reporting are different things, and picking the wrong one
           wastes everybody&rsquo;s time. <strong>Sue</strong> asks a moderator to
           decide a <em>contract</em>: was this delivery what was asked for?{" "}
-          <strong>Report</strong> is about a <em>person</em> — an abusive mission
+          <strong>Report</strong> is about a <em>person</em>: an abusive mission
           text, a deal somebody refuses to honour, a contract written to be
           impossible so the fine collects itself.
         </p>
@@ -249,8 +259,8 @@ export default function ContractsPage() {
           you wrote. The other party is named in it but is not given access.
         </p>
         <p>
-          One report per contract per person — filing the same complaint twice
-          does not make it louder — and weekly missions cannot be reported, since
+          One report per contract per person, so filing the same complaint twice
+          does not make it louder. Weekly missions cannot be reported, since
           the bot is not somebody a moderator can take it up with. If a weekly
           mission itself is broken, that is a bug report, from the mod&rsquo;s
           Tools tab.

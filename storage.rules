@@ -3,15 +3,20 @@ rules_version = '2';
 // Default-deny for the Firebase Storage SDK path. As with Firestore:
 //  - The bot uploads via firebase-admin, which bypasses these rules.
 //  - The website never uses the client Storage SDK; downloads are streamed through
-//    the BFF's /api/marketplace/download proxy (host/bucket/prefix/extension locked).
+//    the BFF's /api/marketplace/download proxy, which takes a listing id, requires
+//    the caller's session, and keeps the host/bucket/prefix/extension lock on the
+//    signed URL the bot hands back.
 //
-// NOTE: craft/blueprint/thumbnail objects are currently made world-readable with
-// blob.make_public(), which grants a legacy *GCS object ACL*. That ACL is enforced
-// by Cloud Storage independently of these Security Rules, so direct
-// storage.googleapis.com URL downloads keep working regardless of this file — and
+// NOTE: the paywalled objects are NOT public. Crafts are uploaded privately and
+// handed out as short-lived signed URLs (data/marketplace.py upload_craft, and
+// data/imports.py for gift crafts); test_security_invariants.py locks both. What
+// is still world-readable via blob.make_public() is the preview imagery only —
+// marketplace blueprints and thumbnails, contract submission files, the gift
+// blueprint. make_public() grants a legacy *GCS object ACL*, which Cloud Storage
+// enforces independently of these Security Rules, so those direct
+// storage.googleapis.com downloads keep working regardless of this file — and
 // this default-deny does not weaken or change that. These rules only govern the
-// Firebase SDK access path, which nothing here uses. (Moving those objects off
-// make_public() to signed URLs is tracked separately as the MEDIUM finding.)
+// Firebase SDK access path, which nothing here uses.
 service firebase.storage {
   match /b/{bucket}/o {
     match /{allPaths=**} {

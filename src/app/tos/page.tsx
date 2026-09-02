@@ -194,9 +194,9 @@ export default function TermsOfServicePage() {
                   Removal of content.
                 </strong>{" "}
                 We may remove, delist or delete any user-generated content
-                uploaded to the Service&rsquo;s database &mdash; craft files,
+                uploaded to the Service&rsquo;s database (craft files,
                 screenshots, custom flags, marketplace listings, contract text
-                and anything else you submit &mdash; at any time, with or
+                and anything else you submit) at any time, with or
                 without reason, and without prior notice. A removal is not by
                 itself a finding that you did anything wrong: it may follow a
                 moderation decision, but it may equally come down to storage,
@@ -245,8 +245,20 @@ export default function TermsOfServicePage() {
                   <code className="rounded bg-card px-1.5 py-0.5 text-xs text-primary">
                     /b deletemydata
                   </code>{" "}
-                  in Discord or contact us to have all your personal data
-                  permanently removed.
+                  in Discord, or email us, to have your personal data permanently
+                  removed &mdash; your profile, your account and sign-in, your
+                  friend list, your catalogs and your corporation. Records that
+                  are also somebody else&apos;s (contracts and auctions you were
+                  party to, support tickets, and craft files another player has
+                  already bought) are kept; your listings are delisted so nothing
+                  further is sold. Section 6 of the{" "}
+                  <a
+                    className="text-primary underline underline-offset-2"
+                    href="/pp"
+                  >
+                    Privacy Policy
+                  </a>{" "}
+                  sets this out in full.
                 </li>
                 <li>
                   <strong className="text-foreground">No third-party sharing.</strong>{" "}
@@ -280,8 +292,8 @@ export default function TermsOfServicePage() {
                 </li>
                 <li>
                   Embed or share flags, decals or other images that contain
-                  personal information &mdash; your own or anyone else&rsquo;s
-                  &mdash; such as real names, faces, addresses, contact
+                  personal information (your own or anyone else&rsquo;s)
+                  such as real names, faces, addresses, contact
                   details, identity or payment documents, or private
                   conversations.
                 </li>
@@ -360,10 +372,10 @@ export default function TermsOfServicePage() {
                   Promotional use of your crafts.
                 </strong>{" "}
                 You also grant us a non-exclusive, worldwide, royalty-free
-                licence to use the crafts you share through the Service &mdash;
+                licence to use the crafts you share through the Service, including
                 the craft file itself, the blueprint sheets and thumbnails the
                 add-on renders from it, and the screenshots you submit
-                alongside it &mdash; to promote {siteConfig.name}. In practice
+                alongside it, to promote {siteConfig.name}. In practice
                 that means showing your craft in places such as the Discord
                 server, this website, the add-on&apos;s release pages and forum
                 threads, and posts about the project on social media. We credit

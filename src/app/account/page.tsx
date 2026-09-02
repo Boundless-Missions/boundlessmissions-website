@@ -11,6 +11,14 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { ListingCard } from "@/components/marketplace/listing-card";
 import { LinkAccount } from "@/components/marketplace/link-account";
+import { SignInCard } from "@/components/account/sign-in-card";
+import { Onboarding } from "@/components/account/onboarding";
+import { ProfileSettings } from "@/components/account/profile-settings";
+import { KspLinkCard } from "@/components/account/ksp-link-card";
+import { DiscordLinkCard } from "@/components/account/discord-link-card";
+import { FriendsCard } from "@/components/account/friends-card";
+import { TicketsCard } from "@/components/account/tickets-card";
+import { TwoFactorCard } from "@/components/account/two-factor-card";
 import { ReportDialog } from "@/components/marketplace/report-dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
@@ -27,6 +35,8 @@ import {
   type Profile,
   type Listing,
 } from "@/lib/marketplace";
+import { fetchAccount, type Account } from "@/lib/account";
+import { signOutAll } from "@/lib/auth";
 import { useListingVotes } from "@/lib/use-listing-votes";
 import { cn } from "@/lib/utils";
 
@@ -34,6 +44,10 @@ type Tab = "uploads" | "purchases";
 
 export default function AccountPage() {
   const [profile, setProfile] = useState<Profile | null>(null);
+  // The account record is a separate read from the wallet: `profile` answers "what
+  // has this player got", `account` answers "who are they". They are loaded together
+  // but only the account knows whether onboarding is still owed.
+  const [account, setAccount] = useState<Account | null>(null);
   const [checking, setChecking] = useState(true);
   const [tab, setTab] = useState<Tab>("uploads");
   const [mine, setMine] = useState<Listing[] | null>(null);
@@ -54,9 +68,17 @@ export default function AccountPage() {
   const loadProfile = useCallback(async () => {
     setChecking(true);
     try {
-      setProfile(await fetchProfile());
+      const [p, a] = await Promise.all([
+        fetchProfile(),
+        // A session that predates accounts, or a Firestore blip, must not take the
+        // whole page down with it — the wallet half still renders.
+        fetchAccount().catch(() => null),
+      ]);
+      setProfile(p);
+      setAccount(a);
     } catch {
       setProfile(null);
+      setAccount(null);
     } finally {
       setChecking(false);
     }
@@ -173,8 +195,13 @@ export default function AccountPage() {
   }
 
   async function handleLogout() {
+    // `logout` drops our cookie; `signOutAll` also clears any Firebase identity
+    // still live in this tab, so the next sign-in asks who you are rather than
+    // silently reusing the last one.
     await logout();
+    await signOutAll().catch(() => {});
     setProfile(null);
+    setAccount(null);
     setMine(null);
     setPurchases(null);
   }
@@ -190,8 +217,13 @@ export default function AccountPage() {
             <Loader2 className="h-6 w-6 animate-spin" />
           </div>
         ) : !profile ? (
-          <div className="py-8">
+          <div className="grid gap-6 py-8 md:grid-cols-2">
+            <SignInCard onSignedIn={loadProfile} />
             <LinkAccount onLinked={loadProfile} />
+          </div>
+        ) : account?.needs_onboarding ? (
+          <div className="py-8">
+            <Onboarding account={account} onDone={loadProfile} />
           </div>
         ) : (
           <>
@@ -200,8 +232,15 @@ export default function AccountPage() {
               <CardContent className="flex flex-wrap items-center justify-between gap-4 p-6">
                 <div>
                   <p className="text-sm text-muted-foreground">Signed in as</p>
-                  <p className="text-xl font-semibold">{profile.username}</p>
-                  <p className="text-xs text-muted-foreground">Level {profile.level}</p>
+                  {/* The account document, not `profile.username` — that one comes
+                      from the 30-day session token and would show a stale name for
+                      a month after a rename. */}
+                  <p className="text-xl font-semibold">
+                    {account?.display_name || profile.username}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {account?.username ? `@${account.username} · ` : ""}Level {profile.level}
+                  </p>
                 </div>
                 <div className="flex items-center gap-4">
                   <Badge variant="secondary" className="h-10 gap-1.5 px-4 text-base">
@@ -213,6 +252,44 @@ export default function AccountPage() {
                 </div>
               </CardContent>
             </Card>
+
+            {profile.debt > 0 && (
+              // Shown wherever the balance is: a share of every payout is going to
+              // these, and rewards arriving smaller with nothing explaining why reads
+              // as the site being broken.
+              <Card className="mb-6 border-amber-500/40">
+                <CardContent className="flex flex-col gap-1 py-4">
+                  <p className="text-sm font-medium">
+                    Unpaid fines: {formatCoins(profile.debt)} KCoins
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {profile.debt_garnish_percent > 0
+                      ? `${profile.debt_garnish_percent}% of what you earn goes towards them until they are paid off. Nothing else is restricted.`
+                      : "Repaid out of a share of what you earn."}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+
+            {account && (
+              <div className="mb-6 grid gap-6 lg:grid-cols-2">
+                <ProfileSettings account={account} onChanged={loadProfile} />
+                <div className="flex flex-col gap-6">
+                  <KspLinkCard />
+                  <DiscordLinkCard account={account} onChanged={loadProfile} />
+                  <TwoFactorCard />
+                </div>
+                {/* Full width, above the tickets: it is a list of people with
+                    actions on each row, and a half-width column turns every row
+                    into two lines. */}
+                <div className="lg:col-span-2">
+                  <FriendsCard account={account} />
+                </div>
+                <div className="lg:col-span-2">
+                  <TicketsCard />
+                </div>
+              </div>
+            )}
 
             {/* Tabs */}
             <div className="mb-5 flex gap-1 border-b border-border">
@@ -271,7 +348,7 @@ export default function AccountPage() {
                       key={l.listing_id}
                       listing={l}
                       votes={voteControls(l)}
-                      downloadUrl={l.craft_url}
+                      canDownload={!!l.craft_url}
                     />
                   );
                 }}

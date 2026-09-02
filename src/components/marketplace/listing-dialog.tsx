@@ -28,7 +28,7 @@ interface ListingDialogProps {
   onDelist?: (l: Listing) => void;
   onRelist?: (l: Listing) => void;
   onDelete?: (l: Listing) => void;
-  downloadUrl?: string | null;
+  canDownload?: boolean;
   busy?: boolean;
 }
 
@@ -40,7 +40,7 @@ export function ListingDialog({
   onDelist,
   onRelist,
   onDelete,
-  downloadUrl,
+  canDownload,
   busy,
 }: ListingDialogProps) {
   // Close on Escape and lock background scroll while open.
@@ -180,16 +180,16 @@ export function ListingDialog({
             />
           )}
 
-          {(onBuy || onDelist || onRelist || onDelete || downloadUrl) && (
+          {(onBuy || onDelist || onRelist || onDelete || canDownload) && (
             <div className="mt-auto flex flex-col gap-2 pt-2">
               {onBuy && !delisted && (
                 <Button disabled={busy} onClick={() => onBuy(listing)}>
                   <ShoppingCart /> Buy for {formatCoins(listing.price)} KCoins
                 </Button>
               )}
-              {downloadUrl && (
+              {canDownload && (
                 <Button asChild variant="outline">
-                  <a href={craftDownloadHref(downloadUrl, listing.craft_filename || `${listing.craft_name}.craft`)}>
+                  <a href={craftDownloadHref(listing.listing_id)}>
                     <Download /> Download .craft
                   </a>
                 </Button>

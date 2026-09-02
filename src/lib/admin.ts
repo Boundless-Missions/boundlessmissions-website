@@ -96,21 +96,27 @@ export function useAdminAccess(): AdminAccess | null {
 
 // ── Types (mirror the bot's /api/v1/web/admin responses) ─────────────────────
 
+/**
+ * The bot-wide fields (`users`, `mod_version`, `policy_version`,
+ * `suspensions_active` and the two gate switches) are only served to the
+ * owner; a guild admin's overview carries the guild list and the listing
+ * counts for their guilds alone. Optional here so the tab renders for both.
+ */
 export interface AdminOverview {
-  users: number;
+  users?: number;
   listings_active: number;
   listings_delisted: number;
   guilds: { id: string; name: string; member_count: number }[];
-  mod_version: {
+  mod_version?: {
     latest_version?: string | null;
     latest_hash?: string | null;
     has_dll: boolean;
     updated_at?: string | null;
   };
-  policy_version: number;
-  suspensions_active: number;
-  version_check_enabled: boolean;
-  device_binding_enabled: boolean;
+  policy_version?: number;
+  suspensions_active?: number;
+  version_check_enabled?: boolean;
+  device_binding_enabled?: boolean;
 }
 
 /**
@@ -137,6 +143,10 @@ export interface AdminUserRow {
   rescues: number;
   joined_at: string;
   suspension: AdminSuspension | null;
+  /** Unpaid contract fines, repaid out of a share of this user's later earnings. */
+  debt: number;
+  /** Who those fines are owed to. `creditor_id: ""` is a bot-issued mission. */
+  debts: { creditor_id: string; amount: number }[];
 }
 
 export interface AdminChannel {
@@ -290,7 +300,13 @@ export async function fetchAdminUsers(q: string): Promise<{ users: AdminUserRow[
 
 export async function adjustAdminUser(
   id: string,
-  body: { balance_delta?: number; balance_set?: number; xp_set?: number },
+  body: {
+    balance_delta?: number;
+    balance_set?: number;
+    xp_set?: number;
+    /** Write off every unpaid fine — the escape hatch for one issued in error. */
+    clear_debts?: boolean;
+  },
 ): Promise<AdminUserRow> {
   const data = await jsonOrThrow<{ user: AdminUserRow }>(
     await authedFetch(`/api/admin/users/${encodeURIComponent(id)}/adjust`, {

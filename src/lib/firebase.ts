@@ -35,7 +35,7 @@ const APP_CHECK_SITE_KEY = "6LfdwTEtAAAAAHUVtvW0duyS2UR7QjSEbumdX9fP";
 
 let appCheck: AppCheck | null = null;
 
-function firebaseApp(): FirebaseApp {
+export function firebaseApp(): FirebaseApp {
   return getApps().length ? getApp() : initializeApp(firebaseConfig);
 }
 
@@ -68,7 +68,19 @@ export async function appCheckHeader(): Promise<Record<string, string>> {
     if (!appCheck) return {};
     const { token } = await getToken(appCheck, /* forceRefresh */ false);
     return { "X-Firebase-AppCheck": token };
-  } catch {
-    return {}; // never block a request on App Check token retrieval
+  } catch (e) {
+    // Still never block the request on this — the server decides whether a
+    // missing token matters. But do not fail *silently*: with enforcement on, a
+    // swallowed failure here surfaces one hop later as "App Check verification
+    // failed", which points at the server and at a token that was never sent.
+    if (process.env.NODE_ENV !== "production") {
+      console.error(
+        "[app-check] could not get a token, sending the request without one.\n" +
+        "If the server answers 403, this is why. In local dev the usual cause is " +
+        "a debug token that isn't registered: copy the 'App Check debug token' " +
+        "line above into Firebase Console > App Check > (web app) > Manage debug " +
+        "tokens. Underlying error:", e);
+    }
+    return {};
   }
 }

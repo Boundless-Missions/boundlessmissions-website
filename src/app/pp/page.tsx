@@ -132,6 +132,57 @@ export default function PrivacyPolicyPage() {
                   <tbody className="divide-y divide-border/40">
                     <tr>
                       <td className="px-5 py-3 text-foreground/90">
+                        Email address
+                      </td>
+                      <td className="px-5 py-3">
+                        Only when you create a Boundless Missions account on this
+                        website. It is your sign-in identity and how an account can
+                        be recovered. You can also use the add-on with a Discord
+                        account alone and never give us an email address at all.
+                      </td>
+                      <td className="px-5 py-3">
+                        On website sign-up (from Google, or from an email and
+                        password)
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="px-5 py-3 text-foreground/90">
+                        Boundless username and display name
+                      </td>
+                      <td className="px-5 py-3">
+                        The public handle other players see, and the name a friend
+                        request is addressed to. The username is reserved to you
+                        for as long as the account exists, so that two accounts
+                        cannot share one.
+                      </td>
+                      <td className="px-5 py-3">When you choose one</td>
+                    </tr>
+                    <tr>
+                      <td className="px-5 py-3 text-foreground/90">
+                        Profile picture you upload
+                      </td>
+                      <td className="px-5 py-3">
+                        Shown to other players in the same places a Discord avatar
+                        would be. Only if you upload one.
+                      </td>
+                      <td className="px-5 py-3">On upload</td>
+                    </tr>
+                    <tr>
+                      <td className="px-5 py-3 text-foreground/90">
+                        Two-factor enrolment
+                      </td>
+                      <td className="px-5 py-3">
+                        If you turn on two-factor authentication, the shared secret
+                        your authenticator app uses and the hashes of your recovery
+                        codes. Used only to check the codes you enter when signing
+                        in.
+                      </td>
+                      <td className="px-5 py-3">
+                        When you enable two-factor authentication
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="px-5 py-3 text-foreground/90">
                         Discord account link
                       </td>
                       <td className="px-5 py-3">
@@ -308,9 +359,9 @@ export default function PrivacyPolicyPage() {
                   believe one is wrong.
                 </li>
                 <li>
-                  Promote the Service: crafts you share &mdash; the file, the
+                  Promote the Service: crafts you share (the file, the
                   blueprint and thumbnail renders made from it, and the
-                  screenshots submitted with it &mdash; may be shown in material
+                  screenshots submitted with it) may be shown in material
                   promoting {siteConfig.name}, credited to your display name, as
                   described in Section 7 of the{" "}
                   <Link
@@ -332,10 +383,13 @@ export default function PrivacyPolicyPage() {
                   Missions is a community service, so part of your Discord
                   profile is visible to other players by design: your display
                   name, your profile picture, your corporation name and your
-                  level. Nothing else is: your Discord ID, device
-                  identifier, IP address and KSP.log are never
-                  shown to another player, and neither is anything you have not
-                  published. What is shown is the same public profile Discord
+                  level. If you linked from Discord, your account identifier{" "}
+                  <em>is</em> your Discord ID, and it is visible to other players
+                  wherever you appear &mdash; on a marketplace listing, in a player
+                  selector, on a friend request &mdash; because it is the identifier
+                  those features address you by. Your device identifier, your IP
+                  address and your KSP.log are never shown to another player, and
+                  neither is anything you have not published. What is shown is the same public profile Discord
                   already displays in the community server, and it is shown only
                   to other linked players. If you would rather not appear at
                   all, turning off data sharing (Section 7) or deleting your
@@ -455,15 +509,47 @@ export default function PrivacyPolicyPage() {
                   command in Discord, or
                 </li>
                 <li>
-                  Contact us directly through the community Discord server.
+                  Contact us directly through the community Discord server, or
+                </li>
+                <li>
+                  Email{" "}
+                  <a
+                    className="text-primary underline underline-offset-2"
+                    href="mailto:legal@boundlessmissions.com"
+                  >
+                    legal@boundlessmissions.com
+                  </a>{" "}
+                  &mdash; the route to use if you signed up on this website and
+                  have no Discord account, since the command above needs one.
                 </li>
               </ul>
               <p className="mt-3">
-                Upon receiving a valid request, we will permanently delete all
-                personal data associated with your account, including your
-                device identifier, IP logs, gameplay submissions and KSP.log
-                uploads, within a reasonable timeframe. Anonymized, aggregated
-                statistics that cannot identify you may be retained.
+                Upon receiving a valid request we permanently delete, within a
+                reasonable timeframe: your profile (XP, balance, levels,
+                preferences); your account record, including your email address,
+                display name, username and profile picture; your sign-in
+                credential itself; your two-factor enrolment and recovery codes;
+                your session and device bindings, and the device identifiers and
+                IP addresses held with them; your friend list, and your entry in
+                other players&rsquo; lists; your installed-parts catalog; your
+                achievement progress and marketplace votes; your notification
+                history and pending craft deliveries; and your corporation
+                record. Your marketplace listings are delisted, so nothing
+                further is sold.
+              </p>
+              <p className="mt-3">
+                <strong className="text-foreground">
+                  Some records are kept, because they are also somebody
+                  else&rsquo;s.
+                </strong>{" "}
+                Contracts and auctions you were party to, and support tickets you
+                opened, remain so that the other person&rsquo;s history stays
+                intact and moderation stays accountable. Craft files another
+                player has already bought stay available to that buyer &mdash;
+                deleting your data stops further distribution, but it cannot
+                recall a copy already delivered. Anonymized, aggregated statistics
+                that cannot identify you may also be retained. Ask us if you need
+                any of these looked at individually.
               </p>
               <p className="mt-3">
                 You can also{" "}

@@ -260,21 +260,29 @@ function OverviewTab({ data, onRefresh }: { data: AdminOverview | null; onRefres
   if (!data) return <Spinner />;
   return (
     <div className="space-y-6">
+      {/* The bot-wide tiles and the distribution card only exist in an owner's
+          response; a guild admin gets the guild list and their listing counts.
+          That is the API's decision — the absence here is what it looks like. */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
-        <StatCard label="Linked players" value={String(data.users)} />
+        {data.users !== undefined && <StatCard label="Linked players" value={String(data.users)} />}
         <StatCard label="Active listings" value={String(data.listings_active)} />
         <StatCard label="Delisted listings" value={String(data.listings_delisted)} />
-        <StatCard label="Policy version" value={`v${data.policy_version}`} />
+        {data.policy_version !== undefined && (
+          <StatCard label="Policy version" value={`v${data.policy_version}`} />
+        )}
         {/* Highlighted only when non-zero: a suspension is a state someone has to
             remember to review, and "0" in the same grey as every other tile is
             how it stops being noticed. */}
-        <StatCard
-          label="Suspended"
-          value={String(data.suspensions_active)}
-          alert={data.suspensions_active > 0}
-        />
+        {data.suspensions_active !== undefined && (
+          <StatCard
+            label="Suspended"
+            value={String(data.suspensions_active)}
+            alert={data.suspensions_active > 0}
+          />
+        )}
       </div>
 
+      {data.mod_version && (
       <Card>
         <CardContent className="space-y-3 p-6">
           <h2 className="font-semibold">Mod distribution</h2>
@@ -305,6 +313,7 @@ function OverviewTab({ data, onRefresh }: { data: AdminOverview | null; onRefres
           </p>
         </CardContent>
       </Card>
+      )}
 
       <Card>
         <CardContent className="p-6">
@@ -622,7 +631,7 @@ const BAN_KIND_COPY: Record<CraftBanKind, { title: string; blurb: string }> = {
   design: {
     title: "Same design",
     blurb:
-      "Every part and where it sits, to the centimetre. Survives a rename, a new description and a re-export — the usual way a craft comes back. The right choice for almost every ban.",
+      "Every part and where it sits, to the centimetre. Survives a rename, a new description and a re-export, the usual way a craft comes back. The right choice for almost every ban.",
   },
   parts: {
     title: "Same parts",
@@ -634,7 +643,7 @@ const BAN_KIND_COPY: Record<CraftBanKind, { title: string; blurb: string }> = {
 const SWEEP_COPY: Record<"delist" | "delete" | "none", string> = {
   delist: "Delist matching listings (files, buyers' re-downloads and the seller's copy are kept)",
   delete: "Delete matching listings and their files for good",
-  none: "Leave existing listings alone — only block future uploads",
+  none: "Leave existing listings alone, only block future uploads",
 };
 
 function BanCraftDialog({
@@ -697,7 +706,7 @@ function BanCraftDialog({
         <h2 className="font-semibold">Ban this craft</h2>
         <p className="mb-4 mt-1 text-sm text-muted-foreground">
           <span className="text-foreground">&ldquo;{listing.craft_name}&rdquo;</span> by{" "}
-          {listing.seller_name}. Blocks it from being listed, quicksent or submitted again — by
+          {listing.seller_name}. Blocks it from being listed, quicksent or submitted again by
           anyone, in any server.
         </p>
         <ErrorBanner message={error} />
@@ -827,7 +836,7 @@ function CraftBansTab() {
     try {
       await revokeCraftBan(b.hash);
       setNotice(
-        `Ban lifted. Listings it took down stay delisted — their sellers can put them back up.`,
+        `Ban lifted. Listings it took down stay delisted; their sellers can put them back up.`,
       );
       await load();
     } catch (e) {
@@ -847,7 +856,7 @@ function CraftBansTab() {
       setNotice(
         `Fingerprinted ${r.updated} listing${r.updated === 1 ? "" : "s"}` +
           (r.failed ? `, ${r.failed} failed` : "") +
-          (r.remaining ? `. ${r.remaining} still to do — run it again.` : ". Nothing left to do."),
+          (r.remaining ? `. ${r.remaining} still to do, so run it again.` : ". Nothing left to do."),
       );
     } catch (e) {
       setError(errMsg(e, "Backfill failed."));
@@ -872,7 +881,7 @@ function CraftBansTab() {
             a friend or submitted against a contract, whoever is uploading it and wherever they are.
           </p>
           <p>
-            It is not a wall. A .craft is plain text — anyone willing to open one in an editor and
+            It is not a wall. A .craft is plain text, so anyone willing to open one in an editor and
             move a part will get past any hash of it. What this stops is the file being passed around
             and re-uploaded, which is what actually happens.
           </p>
@@ -932,7 +941,7 @@ function CraftBansTab() {
                         <p className="truncate font-medium">
                           {b.label || "(unnamed craft)"}{" "}
                           <span className="text-sm font-normal text-muted-foreground">
-                            {b.reason ? `— ${b.reason}` : ""}
+                            {b.reason ? `(${b.reason})` : ""}
                           </span>
                         </p>
                         <p className="truncate text-xs text-muted-foreground">
@@ -975,7 +984,7 @@ function CraftBansTab() {
               <span className="font-medium text-foreground">
                 &ldquo;{pendingRevoke.label || pendingRevoke.hash.slice(0, 12)}&rdquo;
               </span>{" "}
-              can be uploaded again. Listings the ban took down are not put back up — their sellers
+              can be uploaded again. Listings the ban took down are not put back up; their sellers
               relist them themselves.
             </>
           }
@@ -1496,6 +1505,7 @@ function UserEditDialog({
 }) {
   const [balance, setBalance] = useState(String(user.balance));
   const [xp, setXp] = useState(String(user.xp));
+  const [clearDebts, setClearDebts] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -1503,11 +1513,16 @@ function UserEditDialog({
     setBusy(true);
     setError(null);
     try {
-      const body: { balance_set?: number; xp_set?: number } = {};
+      const body: {
+        balance_set?: number;
+        xp_set?: number;
+        clear_debts?: boolean;
+      } = {};
       const b = parseInt(balance, 10);
       const x = parseInt(xp, 10);
       if (!Number.isNaN(b) && b !== user.balance) body.balance_set = b;
       if (!Number.isNaN(x) && x !== user.xp) body.xp_set = x;
+      if (clearDebts) body.clear_debts = true;
       if (Object.keys(body).length === 0) {
         onClose();
         return;
@@ -1553,6 +1568,30 @@ function UserEditDialog({
               className="filter-input"
             />
           </div>
+          {user.debt > 0 && (
+            // Garnishment has no expiry, so a fine issued in error follows the player
+            // for as long as they keep earning. This is the way back.
+            <div className="rounded-lg border border-border bg-muted/40 p-3">
+              <FieldLabel>Unpaid fines</FieldLabel>
+              <p className="mt-1 text-sm font-medium">{user.debt.toLocaleString()}</p>
+              <ul className="mt-1 space-y-0.5 text-xs text-muted-foreground">
+                {user.debts.map((d) => (
+                  <li key={d.creditor_id || "bot"}>
+                    {d.amount.toLocaleString()} to{" "}
+                    {d.creditor_id ? d.creditor_id : "a weekly mission (no creditor)"}
+                  </li>
+                ))}
+              </ul>
+              <label className="mt-2 flex items-center gap-2 text-xs">
+                <input
+                  type="checkbox"
+                  checked={clearDebts}
+                  onChange={(e) => setClearDebts(e.target.checked)}
+                />
+                Write all of it off
+              </label>
+            </div>
+          )}
         </div>
         <div className="mt-5 flex justify-end gap-2">
           <Button variant="outline" onClick={onClose} disabled={busy}>

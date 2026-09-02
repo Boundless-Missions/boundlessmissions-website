@@ -5,9 +5,12 @@
  * attaches the httpOnly session cookie as a Bearer token. The bot session token never
  * reaches client JS.
  *
- * Note what is missing on purpose: **submit**. A submission carries live telemetry and
- * a screenshot from a running game, so it has no browser equivalent — the page can show
- * you a contract is waiting on your submission, but the act itself stays in KSP.
+ * Note what is missing on purpose: **submit** — with one exception. A submission
+ * carries live telemetry and a screenshot from a running game, so it has no browser
+ * equivalent; the page can show you a contract is waiting on your submission, but the
+ * act itself stays in KSP. A `flag_design` contract is the exception, because its
+ * whole deliverable is an image: it has no in-game upload and never had one, so
+ * `submitFlag` below is a real submission rather than a prompt to go and make one.
  */
 import { appCheckHeader } from "./firebase";
 import { notifySessionChanged } from "./session";
@@ -119,6 +122,61 @@ export async function reportContract(id: string, reason: string): Promise<{ mess
     body: JSON.stringify({ reason }),
   });
   return jsonOrThrow<{ message: string }>(res);
+}
+
+// ── Flag design ──────────────────────────────────────────────────────────────
+
+/** The mission type whose deliverable is an image rather than a craft. */
+export const FLAG_DESIGN = "flag_design";
+
+export const MISSION_TYPE_LABELS: Record<string, string> = {
+  flag_design: "Flag design",
+  craft_build: "Craft build",
+  active_vessel: "Flight",
+  rescue: "Rescue",
+};
+
+/** What the bot accepts, mirrored here only so the picker can filter and the
+ *  refusal arrives before an 8 MB upload rather than after it. */
+export const FLAG_ACCEPT = "image/png,image/jpeg,image/webp";
+export const FLAG_MAX_BYTES = 8 * 1024 * 1024;
+
+export interface FlagImage {
+  url: string | null;
+  filename: string;
+  /**
+   * Which of the two images this is. `true` is the stamped, downscaled preview the
+   * issuer reviews; `false` is the clean full-res file, and only ever comes back
+   * once the contract is completed — i.e. paid for. Never infer this from a status
+   * held on the page, which can be a review out of date.
+   */
+  watermarked: boolean;
+}
+
+/** Submit the image a flag-design contract asked for. */
+export async function submitFlag(id: string, file: File): Promise<ActionResult> {
+  const form = new FormData();
+  form.append("flag", file);
+  const res = await authedFetch(`/api/contracts/${encodeURIComponent(id)}/submit_flag`, {
+    method: "POST",
+    // No content-type header: the browser sets it, with the multipart boundary.
+    body: form,
+  });
+  return jsonOrThrow<ActionResult>(res);
+}
+
+/**
+ * The submitted flag, gated by the server exactly as the in-game view gates it.
+ *
+ * Its own call rather than a field on the contract list: the full-res link is
+ * signed and short-lived, so minting one per contract on every page load would
+ * sign a batch of URLs nobody opens.
+ */
+export async function fetchFlag(id: string): Promise<FlagImage> {
+  const res = await authedFetch(`/api/contracts/${encodeURIComponent(id)}/flag`, {
+    cache: "no-store",
+  });
+  return jsonOrThrow<FlagImage>(res);
 }
 
 // ── Commands to a running game ───────────────────────────────────────────────

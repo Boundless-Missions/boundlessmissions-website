@@ -46,7 +46,7 @@ export default function MarketplacePage() {
 
   const [busyId, setBusyId] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<Listing | null>(null);
-  const [bought, setBought] = useState<Record<string, string | null>>({});
+  const [bought, setBought] = useState<Record<string, boolean>>({});
   const [reporting, setReporting] = useState<Listing | null>(null);
   const [reportBusy, setReportBusy] = useState(false);
   const [reportError, setReportError] = useState<string | null>(null);
@@ -185,7 +185,10 @@ export default function MarketplacePage() {
         return;
       }
       setProfile((p) => (p ? { ...p, balance: r.balance } : p));
-      setBought((b) => ({ ...b, [l.listing_id]: r.craft_url ?? null }));
+      // Only that there IS a download, never the signed URL itself — the
+      // proxy mints its own against the session, and a 7-day credential
+      // has no reason to sit in page state.
+      setBought((b) => ({ ...b, [l.listing_id]: !!r.craft_url }));
       showToast(r.already_owned ? "Re-downloaded (already owned)." : "Purchased and queued for KSP import!");
       setConfirming(null);
       load(filters); // refresh sale counts
@@ -303,7 +306,7 @@ export default function MarketplacePage() {
                   placeholder="Min"
                   className="filter-input"
                 />
-                <span className="text-muted-foreground">–</span>
+                <span className="text-muted-foreground">to</span>
                 <input
                   type="number"
                   min={0}
@@ -384,7 +387,7 @@ export default function MarketplacePage() {
                       votes={voteControls(l)}
                       onBuy={handleBuy}
                       busy={busyId === l.listing_id}
-                      downloadUrl={bought[l.listing_id]}
+                      canDownload={bought[l.listing_id]}
                     />
                   ))}
                 </div>

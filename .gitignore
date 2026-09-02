@@ -21,6 +21,10 @@ yarn-error.log*
 
 # local env files
 .env*.local
+# where deploy.sh parks .env.local while `firebase deploy` runs, so the dev
+# file cannot be staged into the Cloud Function source. Normally momentary;
+# it survives a hard kill, and must never be committed when it does.
+.env.local.deploy-stash
 
 # typescript
 *.tsbuildinfo
