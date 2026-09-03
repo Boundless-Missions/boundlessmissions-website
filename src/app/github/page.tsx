@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, Github, Gamepad2, Server } from "lucide-react";
+import { ArrowLeft, Gamepad2, Github, Globe, Server } from "lucide-react";
 
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -21,7 +21,7 @@ const repos = [
     description:
       "The backend server and Discord bot that power the community economy, contracts, weekly missions and account linking.",
     tags: ["Python"],
-    href: "https://github.com/KSPRehber/boundlessmissions-server",
+    href: "https://github.com/Boundless-Missions/boundlessmissions-server",
   },
   {
     icon: Gamepad2,
@@ -29,7 +29,15 @@ const repos = [
     description:
       "The Kerbal Space Program add-on that brings community features into the game: in-game contracts, craft sharing, linking and the consent system.",
     tags: ["C#", "Python", "Shell"],
-    href: "https://github.com/KSPRehber/boundlessmissions",
+    href: "https://github.com/Boundless-Missions/boundlessmissions-modside",
+  },
+  {
+    icon: Globe,
+    title: "Website",
+    description:
+      "This site: the marketplace, the contracts and account pages, the documentation, and the owner console that moderates all of it.",
+    tags: ["TypeScript", "Next.js"],
+    href: "https://github.com/Boundless-Missions/boundlessmissions-website",
   },
 ];
 
