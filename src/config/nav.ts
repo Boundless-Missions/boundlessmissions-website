@@ -62,6 +62,7 @@ export const docsNav: NavSection[] = [
   {
     title: "Start Here",
     items: [
+      { title: "Use of AI", href: "/docs/use-of-ai" },
       { title: "Introduction", href: "/docs" },
       { title: "What It Does", href: "/docs/what-does-it-do" },
       { title: "Linking Your Game", href: "/docs/how-to-use-it/linking" },

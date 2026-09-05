@@ -145,7 +145,10 @@ export default function DocsIntroPage() {
         </Callout>
       </Section>
 
-      <DocPager next={{ title: "What It Does", href: "/docs/what-does-it-do" }} />
+      <DocPager
+        prev={{ title: "Use of AI", href: "/docs/use-of-ai" }}
+        next={{ title: "What It Does", href: "/docs/what-does-it-do" }}
+      />
     </article>
   );
 }

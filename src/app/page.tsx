@@ -164,7 +164,7 @@ export default function HomePage() {
               <p className="mx-auto mt-6 max-w-2xl text-pretty text-lg leading-relaxed text-muted-foreground">
                 Boundless Missions turns a Kerbal Space Program community into a
                 working space industry. Players can create contracts to get others to design crafts or fly them to locations of interest.
-                Corporations can work together, players can auction off their services, and everyone gets a little something for their troubles.
+                Players can auction off their services, and everyone gets a little something for their troubles.
               </p>
               <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
                 <Button asChild size="lg">

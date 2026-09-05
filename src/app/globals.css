@@ -99,6 +99,15 @@
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
+    /*
+     * The gradient is only painted inside the element's box, so a descender
+     * that hangs below the last line box (the y in "Community") is simply not
+     * drawn. Tailwind's larger text sizes ship line-height: 1, which puts the
+     * box edge right on the baseline. Pad the box down far enough to cover the
+     * tail, and give the line a little room so wrapped headings do not clip.
+     */
+    padding-bottom: 0.16em;
+    line-height: 1.15;
   }
 
   .ring-glow {
