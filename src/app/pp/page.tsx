@@ -183,6 +183,21 @@ export default function PrivacyPolicyPage() {
                     </tr>
                     <tr>
                       <td className="px-5 py-3 text-foreground/90">
+                        Discord server membership
+                      </td>
+                      <td className="px-5 py-3">
+                        Your Discord user ID, your Discord handle and the date
+                        you joined. Recorded so that a player record exists to
+                        hold your balance, progress and level, and so a
+                        moderator can look you up when you ask us about your
+                        account. No message content is ever read or stored.
+                      </td>
+                      <td className="px-5 py-3">
+                        When you join our community Discord server
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="px-5 py-3 text-foreground/90">
                         Discord account link
                       </td>
                       <td className="px-5 py-3">
@@ -197,8 +212,9 @@ export default function PrivacyPolicyPage() {
                       <td className="px-5 py-3">
                         Your Discord display name (the nickname you use in the
                         community server, or your account name if you have
-                        none), your profile picture and your corporation name
-                        and level. Stored so they can be shown to other players
+                        none), your profile picture, your Boundless username if
+                        you have claimed one, and your level. Stored so they can
+                        be shown to other players
                         inside the add-on (in the player selectors used
                         to send a craft, offer a contract or issue a rescue)
                         and next to the contracts, marketplace listings
@@ -290,10 +306,20 @@ export default function PrivacyPolicyPage() {
               </h2>
               <p>
                 Per KSP Add-on Posting Rule 8.1, we require clear, informed
-                consent before collecting any information.{" "}
+                consent before collecting any information from your game.{" "}
                 <strong className="text-foreground">
-                  No data is collected until you explicitly opt in.
+                  The add-on collects and transmits nothing until you
+                  explicitly opt in.
                 </strong>
+              </p>
+              <p className="mt-3">
+                One collection sits outside that gate, and it is listed in the
+                table above. If you join our community Discord server, the bot
+                records your Discord user ID, your Discord handle and the date
+                you joined, so that a player record exists to hold your balance
+                and progress. That is the whole of it. No message content is
+                read or stored, and nothing at all is collected from your game
+                until you accept the consent window described below.
               </p>
               <p className="mt-3">
                 On first launch the add-on presents a consent window that asks
@@ -337,7 +363,7 @@ export default function PrivacyPolicyPage() {
                 </li>
                 <li>
                   Show you to other players: display your Discord name, profile
-                  picture, corporation name and level in the add-on&rsquo;s
+                  picture, Boundless username and level in the add-on&rsquo;s
                   in-game player selectors and beside the contracts, listings
                   and auctions you take part in, so that players choosing who to
                   send a craft or a mission to know who they are picking.
@@ -380,22 +406,24 @@ export default function PrivacyPolicyPage() {
               <div className="mt-4 rounded-lg border border-primary/20 bg-primary/5 px-5 py-4">
                 <p className="text-sm text-foreground">
                   <strong>What other players can see.</strong> Boundless
-                  Missions is a community service, so part of your Discord
-                  profile is visible to other players by design: your display
-                  name, your profile picture, your corporation name and your
-                  level. If you linked from Discord, your account identifier{" "}
+                  Missions is a community service, so part of your profile is
+                  visible to other players by design: your display name, your
+                  profile picture, your Boundless username and your level. If you linked from Discord, your account identifier{" "}
                   <em>is</em> your Discord ID, and it is visible to other players
                   wherever you appear &mdash; on a marketplace listing, in a player
                   selector, on a friend request &mdash; because it is the identifier
                   those features address you by. Your device identifier, your IP
                   address and your KSP.log are never shown to another player, and
-                  neither is anything you have not published. What is shown is the same public profile Discord
-                  already displays in the community server, and it is shown only
-                  to other linked players. If you would rather not appear at
+                  neither is anything you have not published. The display
+                  name, picture and level are the same public profile Discord
+                  already displays in the community server; your Boundless
+                  username is ours, is the same in every server, and is shown
+                  only if you claimed one. All of it is shown only to other
+                  linked players. If you would rather not appear at
                   all, turning off data sharing (Section 7) or deleting your
                   data (Section 8) removes you from these lists. Separately, and
                   for the opposite case, the add-on can hide <em>other</em>{" "}
-                  people&rsquo;s profile pictures and corporation names from{" "}
+                  people&rsquo;s profile pictures and usernames from{" "}
                   <em>your</em> screen (useful when you are streaming or
                   recording) under <em>Settings</em> &rarr;{" "}
                   <em>Privacy</em>; while that is on, their pictures are never
@@ -656,7 +684,7 @@ export default function PrivacyPolicyPage() {
                 <li>
                   It listens on a different, randomly chosen port each time you
                   start the game, and stops when you close the game or switch
-                  back to the classic in-game windows.
+                  back to the in-game sidebar.
                 </li>
                 <li>
                   It collects nothing additional. The interface displays the

@@ -62,6 +62,7 @@ import {
   logoutAllAdminUser,
   previewCraftBan,
   publishModVersion,
+  setModVersionMandatory,
   refreshAdminCosts,
   revokeCraftBan,
   sendAdminAnnounce,
@@ -1118,6 +1119,20 @@ function AddCraftBanCard({
 
 // ── Users ────────────────────────────────────────────────────────────────────
 
+/**
+ * How one account is named in a confirmation or a dialog title.
+ *
+ * Display name first because that is what a player reports themselves as, the
+ * @handle after it because that is the half that is unique and the half a
+ * ticket can be checked against — the same order `cogs/targets._label_for`
+ * uses on the Discord side. An account with neither (a wallet that has never
+ * been signed into) falls back to its id, which is never empty.
+ */
+function userLabel(u: AdminUserRow): string {
+  if (u.display_name && u.username) return `${u.display_name} (@${u.username})`;
+  return u.display_name || (u.username ? `@${u.username}` : u.user_id);
+}
+
 function UsersTab() {
   const [q, setQ] = useState("");
   const [rows, setRows] = useState<AdminUserRow[] | null>(null);
@@ -1151,7 +1166,7 @@ function UsersTab() {
     setNotice(null);
     try {
       await logoutAllAdminUser(u.user_id);
-      setNotice(`Revoked every session for ${u.username || u.user_id}.`);
+      setNotice(`Revoked every session for ${userLabel(u)}.`);
     } catch (e) {
       setError(errMsg(e, "Failed to revoke sessions."));
     } finally {
@@ -1168,7 +1183,7 @@ function UsersTab() {
       setRows((cur) => (cur ?? []).map((x) => (x.user_id === u.user_id ? { ...x, suspension: null } : x)));
       setNotice(
         res.lifted
-          ? `${u.username || u.user_id} can use the mod and site again` +
+          ? `${userLabel(u)} can use the mod and site again` +
             (res.notified ? " and has been DMed." : " (couldn't DM them).")
           : "That suspension had already expired on its own.",
       );
@@ -1186,7 +1201,7 @@ function UsersTab() {
     try {
       await deleteAdminUser(u.user_id);
       setRows((cur) => (cur ?? []).filter((x) => x.user_id !== u.user_id));
-      setNotice(`Deleted account ${u.username || u.user_id} and revoked its sessions.`);
+      setNotice(`Deleted account ${userLabel(u)} and revoked its sessions.`);
     } catch (e) {
       setError(errMsg(e, "Failed to delete account."));
     } finally {
@@ -1209,7 +1224,7 @@ function UsersTab() {
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Search by Discord id or name"
+          placeholder="Search by account id, display name or @username"
           className="filter-input max-w-md"
         />
         <Button type="submit" variant="outline" size="sm">
@@ -1235,8 +1250,19 @@ function UsersTab() {
                   u.suspension ? "border-destructive/50" : "border-border",
                 )}
               >
+                {/* Two names, not one. They answer different questions and
+                    neither is always present: the display name is what the
+                    player calls themselves and is not unique, the @handle is
+                    permanent and is the same string in every server. A website
+                    account has no Discord name at all, which is why showing
+                    only one of them left every one of them "(unknown name)". */}
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium">{u.username || "(unknown name)"}</p>
+                  <p className="truncate font-medium">
+                    {u.display_name || (u.username ? `@${u.username}` : "(unnamed account)")}
+                  </p>
+                  {u.username && u.display_name && (
+                    <p className="truncate text-xs text-muted-foreground">@{u.username}</p>
+                  )}
                   <p className="font-mono text-xs text-muted-foreground">{u.user_id}</p>
                 </div>
                 <span className="text-sm text-muted-foreground">Lv {u.level}</span>
@@ -1304,7 +1330,7 @@ function UsersTab() {
             <>
               Erase{" "}
               <span className="font-medium text-foreground">
-                {pendingDelete.username || pendingDelete.user_id}
+                {userLabel(pendingDelete)}
               </span>
               &rsquo;s XP, balance and unlocks, and revoke every session. This cannot be undone.
             </>
@@ -1402,7 +1428,7 @@ function SuspendDialog({
       });
       onDone(
         { ...user, suspension: res.suspension },
-        `${user.username || user.user_id} is suspended for ${humaniseDuration(parsed * 3600)}` +
+        `${userLabel(user)} is suspended for ${humaniseDuration(parsed * 3600)}` +
           (notify ? (res.notified ? " and has been DMed." : ", but the DM could not be delivered.") : "."),
       );
     } catch (e) {
@@ -1420,7 +1446,7 @@ function SuspendDialog({
         className="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="mb-1 font-semibold">Suspend {user.username || user.user_id}</h2>
+        <h2 className="mb-1 font-semibold">Suspend {userLabel(user)}</h2>
         <p className="mb-4 text-xs text-muted-foreground">
           Blocks the KSP mod and this website until it expires. Their Discord membership,
           balance, XP, contracts and listings are untouched. For a permanent removal use a
@@ -1544,7 +1570,7 @@ function UserEditDialog({
         className="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="mb-1 font-semibold">Edit {user.username || user.user_id}</h2>
+        <h2 className="mb-1 font-semibold">Edit {userLabel(user)}</h2>
         <p className="mb-4 text-xs text-muted-foreground">
           Level is derived from XP and recomputes on its own.
         </p>
@@ -1966,11 +1992,18 @@ function VersionTab() {
   const [version, setVersion] = useState("");
   const [downloadUrl, setDownloadUrl] = useState("");
   const [setLatest, setSetLatest] = useState(true);
+  // Off by default, and deliberately so: forcing is the exceptional case, and a
+  // publish dialog that arrives pre-armed to lock players out would make it the
+  // one nobody chose. See the bot's data/mod_version.acceptance.
+  const [mandatory, setMandatory] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
+  // Which row's toggle is in flight, and which one is asking to be confirmed.
+  const [flagBusy, setFlagBusy] = useState<string | null>(null);
+  const [flagging, setFlagging] = useState<{ version: string; next: boolean } | null>(null);
 
   useEffect(() => {
     fetchModVersion()
@@ -1987,12 +2020,16 @@ function VersionTab() {
       form.set("version", version.trim());
       form.set("download_url", downloadUrl.trim());
       form.set("set_latest", String(setLatest));
+      form.set("mandatory", String(mandatory));
       if (file) form.set("dll", file, file.name);
       setConfig(await publishModVersion(form));
       setNotice(
-        setLatest
+        (setLatest
           ? "Published. Every running KSP client has been poked to re-check its version."
-          : "Published (not marked latest).",
+          : "Published (not marked latest).") +
+          (mandatory
+            ? " Older builds stop working once their grace window runs out."
+            : " Older builds keep working, with an update notice at game start."),
       );
       setVersion("");
       setFile(null);
@@ -2001,6 +2038,25 @@ function VersionTab() {
     } finally {
       setBusy(false);
       setConfirming(false);
+    }
+  }
+
+  async function applyMandatory(version: string, next: boolean) {
+    setFlagBusy(version);
+    setError(null);
+    setNotice(null);
+    try {
+      setConfig(await setModVersionMandatory(version, next));
+      setNotice(
+        next
+          ? `${version} is now required. Every build below it stops working once its grace window runs out.`
+          : `${version} is no longer required. Builds below it keep working, with an update notice.`,
+      );
+    } catch (e) {
+      setError(errMsg(e, "Failed to change that version."));
+    } finally {
+      setFlagBusy(null);
+      setFlagging(null);
     }
   }
 
@@ -2023,6 +2079,12 @@ function VersionTab() {
                   </span>
                 )}
               </p>
+              <p className="mb-3 text-xs text-muted-foreground">
+                Publishing a version does not lock anyone out of the game. Players on an
+                older build are told an update exists and keep playing — until some version
+                is marked <span className="font-medium text-foreground">required</span>,
+                which starts the grace window for every build below it.
+              </p>
               <div className="space-y-1.5">
                 {Object.entries(config.versions ?? {}).map(([v, info]) => (
                   <div
@@ -2034,11 +2096,30 @@ function VersionTab() {
                       {info.hash.slice(0, 16)}…
                     </span>
                     {v === config.latest_version && <Badge variant="secondary">latest</Badge>}
+                    {info.mandatory && (
+                      <Badge variant="outline" className="border-destructive/40 text-destructive">
+                        required
+                      </Badge>
+                    )}
                     {info.has_dll ? (
                       <Badge variant="outline">attestable</Badge>
                     ) : (
                       <Badge variant="outline" className="text-muted-foreground">hash only</Badge>
                     )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={flagBusy !== null}
+                      onClick={() => setFlagging({ version: v, next: !info.mandatory })}
+                    >
+                      {flagBusy === v ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : info.mandatory ? (
+                        "Stop requiring"
+                      ) : (
+                        "Require"
+                      )}
+                    </Button>
                   </div>
                 ))}
                 {Object.keys(config.versions ?? {}).length === 0 && (
@@ -2095,7 +2176,22 @@ function VersionTab() {
                 onChange={(e) => setSetLatest(e.target.checked)}
                 className="h-4 w-4"
               />
-              Mark as latest (activates the update gate for this build)
+              Mark as latest (what clients are offered as the current build)
+            </label>
+            <label className="flex items-start gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={mandatory}
+                onChange={(e) => setMandatory(e.target.checked)}
+                className="mt-0.5 h-4 w-4"
+              />
+              <span>
+                Required update
+                <span className="block text-xs text-muted-foreground">
+                  Every older build stops working once its grace window runs out. Leave off
+                  for an ordinary release: players behind are told, not locked out.
+                </span>
+              </span>
             </label>
             <Button onClick={() => setConfirming(true)} disabled={busy || !version.trim() || !file}>
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />}{" "}
@@ -2109,20 +2205,56 @@ function VersionTab() {
         <ConfirmDialog
           title="Publish this build?"
           description={
-            setLatest ? (
+            mandatory ? (
+              <>
+                <span className="font-medium text-foreground">{version.trim()}</span> is a
+                required update: every older build stops working once its grace window
+                runs out, and a player who cannot update in time loses access until they
+                do. Only do this for a release nobody may stay behind.
+              </>
+            ) : setLatest ? (
               <>
                 Publishing <span className="font-medium text-foreground">{version.trim()}</span> as
-                latest will make every out-of-date KSP client gate on &ldquo;update required&rdquo;
-                the moment it next talks to the server.
+                latest offers it to every client. Players on an older build are told an update
+                exists at game start and keep playing.
               </>
             ) : (
               <>Register {version.trim()} without changing what clients are held to.</>
             )
           }
           confirmLabel="Publish"
+          destructive={mandatory}
           busy={busy}
           onConfirm={publish}
           onCancel={() => setConfirming(false)}
+        />
+      )}
+
+      {flagging && (
+        <ConfirmDialog
+          title={flagging.next ? "Require this version?" : "Stop requiring this version?"}
+          description={
+            flagging.next ? (
+              <>
+                Every build below{" "}
+                <span className="font-medium text-foreground">{flagging.version}</span> starts
+                its grace window now and stops working when that runs out. Players still on
+                one lose access until they update.
+              </>
+            ) : (
+              <>
+                Builds below{" "}
+                <span className="font-medium text-foreground">{flagging.version}</span> go back
+                to working indefinitely, with an update notice at game start. Anyone already
+                locked out gets back in.
+              </>
+            )
+          }
+          confirmLabel={flagging.next ? "Require" : "Stop requiring"}
+          destructive={flagging.next}
+          busy={flagBusy !== null}
+          onConfirm={() => applyMandatory(flagging.version, flagging.next)}
+          onCancel={() => setFlagging(null)}
         />
       )}
     </div>

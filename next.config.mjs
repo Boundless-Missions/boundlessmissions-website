@@ -6,6 +6,8 @@ const isProd = process.env.NODE_ENV === "production";
 //  - Firebase App Check + reCAPTCHA Enterprise load/execute from google/gstatic
 //    and call the *.googleapis.com App Check endpoints (connect-src).
 //  - Marketplace blueprint/thumbnail images are public objects on storage.googleapis.com.
+//  - The homepage trailer is a click-to-play facade: the poster comes from i.ytimg.com
+//    (img-src) and the player, once clicked, frames youtube-nocookie.com (frame-src).
 //  - Next.js hydration + Tailwind need inline scripts/styles (no nonce pipeline here),
 //    and reCAPTCHA historically needs 'unsafe-eval'.
 //
@@ -23,11 +25,11 @@ const csp = [
   "object-src 'none'",
   "frame-ancestors 'none'",
   "form-action 'self'",
-  "img-src 'self' data: blob: https://storage.googleapis.com https://www.gstatic.com https://www.google.com",
+  "img-src 'self' data: blob: https://storage.googleapis.com https://i.ytimg.com https://www.gstatic.com https://www.google.com",
   "style-src 'self' 'unsafe-inline'",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com https://www.gstatic.com",
   "connect-src 'self' https://firebaseappcheck.googleapis.com https://content-firebaseappcheck.googleapis.com https://firebaseinstallations.googleapis.com https://www.google.com https://www.gstatic.com",
-  "frame-src https://www.google.com",
+  "frame-src https://www.google.com https://www.youtube-nocookie.com",
   "font-src 'self' data:",
   "worker-src 'self' blob:",
 ].join("; ");

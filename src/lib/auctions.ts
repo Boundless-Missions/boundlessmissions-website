@@ -45,11 +45,11 @@ export interface ActionResult {
   message: string;
 }
 
-/** What the winner has to deliver — the same set the Discord command offers. */
+/** What the winner has to deliver — the same set the in-game contract form offers. */
 export const WORK_LABELS: Record<string, string> = {
   craft_build: "Craft build: submit a blueprint from the VAB/SPH",
   active_vessel: "Active mission: fly a craft to the target",
-  flag_design: "Flag design: submitted and reviewed in Discord",
+  flag_design: "Flag design: an image, uploaded here or in Discord",
 };
 
 async function authedFetch(input: string, init: RequestInit = {}): Promise<Response> {

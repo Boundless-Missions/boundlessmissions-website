@@ -9,7 +9,7 @@ import {
   Gamepad2,
   Globe,
   FlaskConical,
-  ShieldCheck,
+  ListChecks,
   Rocket,
   FileSearch,
 } from "lucide-react";
@@ -17,7 +17,7 @@ import {
 export const metadata: Metadata = {
   title: "Use of AI",
   description:
-    "Boundless Missions was written with an AI coding assistant. Where it was used, what it was not used for, and how the result was audited, tested and played before it shipped.",
+    "Boundless Missions was written with an AI coding assistant. Where it was used, what it was not used for, and how the result was reviewed, tested and played before it shipped.",
 };
 
 const fields = [
@@ -38,8 +38,8 @@ const fields = [
   },
   {
     icon: FlaskConical,
-    title: "Tests, tooling & audits",
-    body: "The offline test suites, the harness that drives a running KSP from outside it, the build and packaging scripts, and repeated line-by-line security passes over the whole codebase.",
+    title: "Tests, tooling & review passes",
+    body: "The offline test suites, the harness that drives a running KSP from outside it, the build and packaging scripts, and repeated line-by-line review passes over the whole codebase.",
   },
 ];
 
@@ -50,9 +50,9 @@ const verification = [
     body: "Signing and session auth, the economy and fine debt, contract state transitions, suspensions, craft bans, the crew ledger, cost limits and rate limits, plus a separate suite for the website. They run against the real modules, not mocks of them, and they run before anything ships.",
   },
   {
-    icon: ShieldCheck,
-    title: "Eleven written security audits",
-    body: "Successive passes over the same code, each one ending in a numbered ledger of findings that has to be closed before the next pass begins. The deep passes carry executable repro scripts, so a claimed bug has to actually reproduce before it is accepted as one, and a claimed fix has to make it stop.",
+    icon: ListChecks,
+    title: "Repeated line-by-line review passes",
+    body: "Successive passes over the same code, each one ending in a numbered ledger of findings that has to be closed before the next pass begins. They carry executable repro scripts, so a claimed bug has to actually reproduce before it is accepted as one, and a claimed fix has to make it stop. Most of what they turn up never reaches a player: it was cleared before release.",
   },
   {
     icon: Rocket,
@@ -108,9 +108,9 @@ export default function UseOfAiPage() {
           ))}
         </div>
         <p>
-          There is no part of the codebase it did not touch. Saying it was used
-          &ldquo;for boilerplate&rdquo; would be a more comfortable claim and it
-          would not be true.
+          Its use runs across the whole codebase rather than sitting in one
+          corner of it. Calling it a &ldquo;boilerplate helper&rdquo; would be
+          the easier thing to say, but it would not quite cover the work it did.
         </p>
       </Section>
 
@@ -207,10 +207,10 @@ export default function UseOfAiPage() {
             not finished.
           </li>
           <li>
-            All three repositories are public and GPL-3.0. The audits, the
-            findings ledgers and the in-game verification write-ups are part of
-            the work. You are invited to check the claims on this page against
-            the code.
+            All three repositories are public and GPL-3.0. The review passes,
+            the findings ledgers and the in-game verification write-ups are part
+            of the work. You are invited to check the claims on this page
+            against the code.
           </li>
           <li>
             Bugs go to a real ticket with a real person on the other end, and

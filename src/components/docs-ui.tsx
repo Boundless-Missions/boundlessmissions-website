@@ -1,4 +1,5 @@
 import * as React from "react";
+import Image from "next/image";
 import { Info, AlertTriangle, Lightbulb } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -227,5 +228,50 @@ export function DefinitionTable({
         </tbody>
       </table>
     </div>
+  );
+}
+
+/**
+ * A screenshot with a caption.
+ *
+ * `next.config.mjs` sets `images.unoptimized`, so this is a plain `<img>` in all
+ * but name — the width/height are carried anyway because they are what reserves
+ * the space before the file lands, and a docs page that reflows as its pictures
+ * arrive is worse than one that loads a moment slower. `max-w` keeps a narrow
+ * capture (the mod's link window is 411px wide) at its own size rather than
+ * stretching it across the column into a blur.
+ */
+export function Screenshot({
+  src,
+  alt,
+  width,
+  height,
+  caption,
+  maxWidth,
+}: {
+  src: string;
+  alt: string;
+  width: number;
+  height: number;
+  caption?: React.ReactNode;
+  /** CSS width cap, e.g. "420px". Defaults to the image's own pixel width. */
+  maxWidth?: string;
+}) {
+  return (
+    <figure className="my-6">
+      <Image
+        src={src}
+        alt={alt}
+        width={width}
+        height={height}
+        className="h-auto w-full rounded-lg border border-border bg-secondary/40"
+        style={{ maxWidth: maxWidth ?? `${width}px` }}
+      />
+      {caption ? (
+        <figcaption className="mt-2 text-sm leading-relaxed text-muted-foreground">
+          {caption}
+        </figcaption>
+      ) : null}
+    </figure>
   );
 }

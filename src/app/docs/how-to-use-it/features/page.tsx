@@ -50,7 +50,7 @@ const panels = [
   {
     icon: Wrench,
     title: "Tools",
-    body: "Quicksend a craft to another player, export a craft to a file with everything packed in, import a flag, file a bug report with your KSP.log attached, and repair a roster with broken crew professions.",
+    body: "Quicksend a craft to a friend, export a craft to a file with everything packed in, import a flag, file a bug report with your KSP.log attached, and repair a roster with broken crew professions.",
   },
   {
     icon: Settings,

@@ -16,13 +16,14 @@ import {
   Scale,
   Bot,
   Gamepad2,
+  Globe,
   PanelRight,
 } from "lucide-react";
 
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { FeatureCard } from "@/components/feature-card";
-import { HeroConsole } from "@/components/hero-console";
+import { HeroTrailer } from "@/components/hero-trailer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -156,7 +157,7 @@ export default function HomePage() {
             <div className="mx-auto max-w-3xl text-center">
               <Badge variant="outline" className="mb-6 gap-2">
                 <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-                Discord bot + KSP add-on
+                KSP add-on, website and Discord bot
               </Badge>
               <h1 className="text-balance text-4xl font-bold tracking-tight sm:text-6xl text-gradient">
                 Uniting The KSP Community
@@ -181,7 +182,7 @@ export default function HomePage() {
 
             <div className="relative mx-auto mt-16 max-w-5xl">
               <div className="ring-glow rounded-2xl">
-                <HeroConsole />
+                <HeroTrailer />
               </div>
             </div>
           </div>
@@ -223,59 +224,20 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Two components */}
+        {/* Three surfaces */}
         <section className="container py-20">
           <div className="mx-auto mb-12 max-w-2xl text-center">
             <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              Two halves of one system
+              Three ways in, one account
             </h2>
             <p className="mt-4 text-muted-foreground">
-              A Discord bot runs the community side and serves a private API. An
-              add-on brings all of it inside Kerbal Space Program. They share no
-              code, only that API.
+              The account is the thing that exists. The game, this website and a
+              Discord server are three ways to reach it, and they share no code
+              between them, only one signed API.
             </p>
           </div>
 
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card className="overflow-hidden">
-              <CardContent className="p-6">
-                <div className="mb-5 flex items-center gap-3">
-                  <span className="flex h-11 w-11 items-center justify-center rounded-lg border border-border bg-accent/40 text-primary">
-                    <Bot className="h-5 w-5" />
-                  </span>
-                  <div>
-                    <h3 className="font-semibold">Discord bot</h3>
-                    <p className="text-xs text-muted-foreground">
-                      Lives in your Discord server
-                    </p>
-                  </div>
-                </div>
-                <ul className="space-y-2.5 text-sm leading-relaxed text-muted-foreground">
-                  <li>
-                    Wallets, XP and the rank titles that come with them, shared
-                    across every server the bot is in.
-                  </li>
-                  <li>
-                    Contract and auction boards, dispute handling, tickets and
-                    moderation.
-                  </li>
-                  <li>
-                    Weekly missions, screenshot analysis and corporations.
-                  </li>
-                  <li>
-                    A signed REST API, running in the same process, that the game
-                    talks to.
-                  </li>
-                </ul>
-                <Button asChild variant="link" className="mt-4 px-0">
-                  <Link href="/docs/how-does-it-work/discord-bot">
-                    Bot documentation
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
-
+          <div className="grid gap-6 md:grid-cols-3">
             <Card className="overflow-hidden">
               <CardContent className="p-6">
                 <div className="mb-5 flex items-center gap-3">
@@ -283,16 +245,16 @@ export default function HomePage() {
                     <Gamepad2 className="h-5 w-5" />
                   </span>
                   <div>
-                    <h3 className="font-semibold">KSP add-on</h3>
+                    <h3 className="font-semibold">In the game</h3>
                     <p className="text-xs text-muted-foreground">
-                      Runs inside Kerbal Space Program
+                      A Kerbal Space Program add-on
                     </p>
                   </div>
                 </div>
                 <ul className="space-y-2.5 text-sm leading-relaxed text-muted-foreground">
                   <li>
-                    A sidebar over the game for missions, the inbox, your
-                    profile, selling and the tools panel.
+                    A sidebar over the game for missions, the contract inbox,
+                    your profile, your finances, selling and the tools panel.
                   </li>
                   <li>
                     Submission that reads the live vessel and renders a blueprint
@@ -314,6 +276,94 @@ export default function HomePage() {
                 </Button>
               </CardContent>
             </Card>
+
+            <Card className="overflow-hidden">
+              <CardContent className="p-6">
+                <div className="mb-5 flex items-center gap-3">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-lg border border-border bg-accent/40 text-primary">
+                    <Globe className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <h3 className="font-semibold">On this website</h3>
+                    <p className="text-xs text-muted-foreground">
+                      Anywhere you have a browser
+                    </p>
+                  </div>
+                </div>
+                <ul className="space-y-2.5 text-sm leading-relaxed text-muted-foreground">
+                  <li>
+                    Sign up with Google or an email address. Nothing else is
+                    required to have a wallet and a name.
+                  </li>
+                  <li>
+                    Browse and buy the craft marketplace, checked against the
+                    parts you actually have installed.
+                  </li>
+                  <li>
+                    Your contracts and auctions, and the one kind of work a
+                    browser can deliver: flag designs.
+                  </li>
+                  <li>
+                    Friends, two-factor, support tickets, and the code that links
+                    a KSP install to all of it.
+                  </li>
+                </ul>
+                <Button asChild variant="link" className="mt-4 px-0">
+                  <Link href="/marketplace">
+                    Open the marketplace
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="overflow-hidden">
+              <CardContent className="p-6">
+                <div className="mb-5 flex items-center gap-3">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-lg border border-border bg-accent/40 text-primary">
+                    <Bot className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <h3 className="font-semibold">In Discord</h3>
+                    <p className="text-xs text-muted-foreground">
+                      Optional, in your community&apos;s server
+                    </p>
+                  </div>
+                </div>
+                <ul className="space-y-2.5 text-sm leading-relaxed text-muted-foreground">
+                  <li>
+                    Auction bidding, which is a game between people and belongs
+                    somewhere people are already talking.
+                  </li>
+                  <li>
+                    A corporation gets a channel of its own for offers,
+                    deliveries and dispute hand-offs.
+                  </li>
+                  <li>
+                    Weekly community missions, and screenshot analysis that reads
+                    a shot and pays to match.
+                  </li>
+                  <li>
+                    Moderation, tickets and the rank titles that come with XP.
+                  </li>
+                </ul>
+                <Button asChild variant="link" className="mt-4 px-0">
+                  <Link href="/docs/how-does-it-work/discord-bot">
+                    Bot documentation
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="mx-auto mt-8 flex max-w-3xl items-start gap-3 rounded-xl border border-border/60 bg-card/30 px-5 py-4 sm:items-center">
+            <Link2 className="h-4 w-4 shrink-0 text-primary" />
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              One wallet, one contract list and one set of craft behind all
+              three. Attach a KSP install and a Discord account in whichever
+              order suits you, or leave either one off.
+            </p>
           </div>
         </section>
 

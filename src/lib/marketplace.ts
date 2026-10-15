@@ -311,12 +311,32 @@ export async function logout(): Promise<void> {
   notifySessionChanged();
 }
 
+/**
+ * Sign out of the website AND every linked KSP install.
+ *
+ * The deliberate counterpart to `logout`, which is web-only: the game keeps its
+ * link through an ordinary sign-out, and ending it is an explicit choice made
+ * here. The player has to link the mod again afterwards with a fresh code.
+ */
+export async function logoutEverywhere(): Promise<void> {
+  await authedFetch(`/api/auth/logout_all`, { method: "POST" });
+  notifySessionChanged();
+}
+
 // ── Auth (link-code flow) ────────────────────────────────────────────────────
 
 export interface LinkResponse {
   status: "ok" | "approval_required" | "pending";
   username?: string;
   challenge_id?: string;
+  /**
+   * Where an "approval_required" challenge is answered: "discord" (the DM the bot
+   * just sent) or "panel" (the account page that minted the code — the only route
+   * an account with no Discord takes). Both come back with the same status and the
+   * same challenge_id, so this is the only thing that tells them apart. Absent on
+   * an older bot, which is why the caller names both surfaces rather than guessing.
+   */
+  approve_via?: "discord" | "panel" | "";
 }
 
 export async function startLink(code: string): Promise<LinkResponse> {

@@ -345,6 +345,37 @@ export async function forwardLink(path: string, payload: unknown): Promise<NextR
   return NextResponse.json(data, { status: r.status });
 }
 
+/**
+ * The body of both sign-out routes: revoke server-side, then drop the cookie.
+ *
+ * `endpoint` chooses the SCOPE, and that is the only difference between them —
+ * `/auth/logout_web` ends the browser sessions and leaves the account's KSP
+ * installs linked; `/auth/logout_all` ends everything, game clients included.
+ * They share this function so the two can never drift on the part that matters:
+ * the cookie must come off either way.
+ *
+ * Failure is tolerated on purpose. The cookie must clear even when the bot is
+ * down, or a user who wants out of a shared browser is told "try again later"
+ * and left signed in — the worse of the two failures by a distance.
+ */
+export async function signOut(endpoint: string): Promise<NextResponse> {
+  try {
+    const r = await botFetch(endpoint, { method: "POST" });
+    // `botFetch` resolves for a 4xx/5xx rather than throwing, so a silent failure
+    // here would look exactly like a successful sign-out while the token stayed
+    // live for its full 30 days. A 404 in particular means the site shipped ahead
+    // of the bot and this endpoint does not exist yet — deploy the bot first.
+    if (!r.ok) {
+      console.error(`[bff] ${endpoint} answered ${r.status}; the session may NOT be revoked`);
+    }
+  } catch (e) {
+    console.error(`[bff] ${endpoint} failed; clearing the cookie regardless:`, e);
+  }
+  const res = NextResponse.json({ success: true });
+  clearSessionCookie(res);
+  return res;
+}
+
 export function clearSessionCookie(res: NextResponse): void {
   res.cookies.set(SESSION_COOKIE, "", {
     httpOnly: true,

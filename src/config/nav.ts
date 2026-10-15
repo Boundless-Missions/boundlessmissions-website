@@ -1,13 +1,13 @@
 export const siteConfig = {
   name: "Boundless Missions",
   shortName: "Boundless Missions",
-  tagline: "Community missions for Kerbal Space Program, run from Discord and flown in game.",
+  tagline: "Community missions for Kerbal Space Program: written in game, flown in game, settled anywhere.",
   description:
-    "A Discord bot and a Kerbal Space Program add-on that let players hire each other. Write a contract, fly it, hand the craft over, collect the reward. Contracts, auctions, a craft marketplace and weekly missions, reachable from Discord, from the game and from this site.",
+    "A Kerbal Space Program add-on, a website and a Discord bot that let players hire each other. Write a contract, fly it, hand the craft over, collect the reward. Contracts, auctions, a craft marketplace and weekly missions, reachable from the game, from this site and from Discord.",
   // Community links shown in the site header. Replace with the real URLs.
   links: {
-    patreon: "https://patreon.com/ksprehber?utm_medium=unknown&utm_source=join_link&utm_campaign=creatorshare_creator&utm_content=copyLink",
-    youtube: "https://www.youtube.com/@aydprj",
+    patreon: "https://www.patreon.com/cw/boundlessmissions",
+    youtube: "https://www.youtube.com/@BoundlessMissions",
     github: "https://github.com/",
   },
 };

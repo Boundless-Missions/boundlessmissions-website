@@ -91,8 +91,9 @@ export default function WhatDoesItDoPage() {
           </li>
           <li>
             <strong className="text-foreground">Boards and announcements.</strong>{" "}
-            Contract offers, auction posts, marketplace listings and the weekly
-            mission drop, each in its own channel.
+            Contract offers, auction posts and the weekly mission drop, each in
+            its own channel. Marketplace listings are not among them: the
+            marketplace lives on the website and in the game.
           </li>
           <li>
             <strong className="text-foreground">Screenshot analysis.</strong> Post

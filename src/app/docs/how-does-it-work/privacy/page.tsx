@@ -52,7 +52,7 @@ export default function PrivacyPage() {
               name: "Your Discord profile",
               type: "seen by other players",
               description:
-                "Your display name, profile picture and corp name, stored so the add-on can draw you in the in-game player lists other players pick from (sending a craft, offering a contract, issuing a rescue) and beside the listings and auctions you take part in. It is the same public profile the community server already shows; your Discord ID is not displayed.",
+                "Your display name, profile picture, level and Boundless username, stored so the add-on can draw you in the in-game player lists other players pick from (sending a craft, offering a contract, issuing a rescue) and beside the listings and auctions you take part in. The name and picture are the same public profile the community server already shows; the username is the handle that identifies you across every server, and only appears if you claimed one. Your Discord ID is not displayed.",
             },
             {
               name: "Gameplay progress",

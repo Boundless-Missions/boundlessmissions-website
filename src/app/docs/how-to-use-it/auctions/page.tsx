@@ -123,11 +123,13 @@ export default function AuctionsPage() {
 
       <Section title="Where to post one">
         <p>
-          Auctions are opened on this website, or from the contract form in the
-          game&rsquo;s sidebar, which carries an auction switch on the same
-          screen that writes ordinary contracts. Either way the auction is
-          global: it is mirrored into the auction channel of every server, where
-          the post updates live as bids come in.
+          Auctions are opened from the contract form in the game&rsquo;s
+          sidebar, which carries an auction switch on the same screen that
+          writes ordinary contracts. That is the only place one can be posted,
+          for the same reason an ordinary contract can only be written there:
+          the form reads your install as you fill it in. The auction itself is
+          global once posted &mdash; it is mirrored into the auction channel of
+          every server, where the post updates live as bids come in.
         </p>
         <p>
           Bidding is the other way round. It happens on the Discord post, which

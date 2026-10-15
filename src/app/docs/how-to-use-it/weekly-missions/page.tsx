@@ -33,8 +33,26 @@ export default function WeeklyMissionsPage() {
         </p>
         <p>
           The selection is deterministic for a given week rather than rolled
-          fresh on demand, so everybody in the server sees the same twenty and
-          the board can be rebuilt if a message is lost.
+          fresh on demand, so the board can always be rebuilt if a message is
+          lost. The board posted in Discord is drawn for the stock Kerbol system,
+          which is what almost everybody flies.
+        </p>
+        <p>
+          The board <strong className="text-foreground">in the mod</strong> is
+          drawn for your install. Your KSP client already tells the bot which
+          parts and which planets you have, so a Real Solar System save is
+          offered Earth, the Moon and Mars rather than Kerbin and the Mun, and an
+          install carrying Near Future, Far Future, Outer Planets or a life
+          support mod gets missions written for them. Two players with the same
+          mods see the same board, so this is still a shared objective rather
+          than a private one.
+        </p>
+        <p>
+          This is also where the reward difference between saves comes from.
+          Nothing multiplies your pay for running a hard install; the missions a
+          hard install is offered are simply rated harder, and pay scales on that
+          rating. Reaching orbit at all is a difficulty 5 in Real Solar System
+          and a difficulty 1 in stock.
         </p>
         <Callout variant="info" title="These are written, not generated">
           <p>

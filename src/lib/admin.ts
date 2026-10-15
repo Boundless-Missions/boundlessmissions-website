@@ -135,7 +135,19 @@ export interface AdminSuspension {
 
 export interface AdminUserRow {
   user_id: string;
+  /**
+   * The permanent Boundless handle, or "" for an account that has not claimed
+   * one yet. Deliberately not a Discord handle: it is the one name that means
+   * the same thing in every server and in the mod, so it is what a ticket is
+   * checked against.
+   */
   username: string;
+  /**
+   * What the player calls themselves — their account display name, else the
+   * name Discord knows them by. Carries no uniqueness, which is why it is shown
+   * *alongside* the username rather than instead of it.
+   */
+  display_name: string;
   xp: number;
   level: number;
   balance: number;
@@ -177,7 +189,20 @@ export interface ModVersionConfig {
   has_dll?: boolean;
   updated_at?: string;
   updated_by?: string;
-  versions?: Record<string, { hash: string; download_url: string; has_dll: boolean }>;
+  versions?: Record<
+    string,
+    {
+      hash: string;
+      download_url: string;
+      has_dll: boolean;
+      published_at?: string;
+      superseded_at?: string;
+      // Whether this release forces the builds below it. Optional because entries
+      // published before the flag existed carry no answer, and absent reads as
+      // false — nothing is forced unless somebody said so.
+      mandatory?: boolean;
+    }
+  >;
 }
 
 export interface AdminControlsState {
@@ -420,6 +445,20 @@ export async function fetchModVersion(): Promise<ModVersionConfig> {
 export async function publishModVersion(form: FormData): Promise<ModVersionConfig> {
   const data = await jsonOrThrow<{ config: ModVersionConfig }>(
     await authedFetch("/api/admin/modversion/publish", { method: "POST", body: form }),
+  );
+  return data.config;
+}
+
+export async function setModVersionMandatory(
+  version: string,
+  mandatory: boolean,
+): Promise<ModVersionConfig> {
+  const data = await jsonOrThrow<{ config: ModVersionConfig }>(
+    await authedFetch("/api/admin/modversion/mandatory", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ version, mandatory }),
+    }),
   );
   return data.config;
 }

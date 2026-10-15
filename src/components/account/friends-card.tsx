@@ -182,7 +182,7 @@ export function FriendsCard({ account }: { account: Account }) {
           description={
             <>
               Turn down all {incoming.length} pending requests at once. Nobody is told, and
-              anyone can ask again — but there is no undo from here, so a request you meant
+              anyone can ask again, but there is no undo from here, so a request you meant
               to accept has to be sent a second time.
             </>
           }

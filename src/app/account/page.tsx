@@ -30,6 +30,7 @@ import {
   deleteListing,
   reportListing,
   logout,
+  logoutEverywhere,
   formatCoins,
   VOTE_NONE,
   type Profile,
@@ -60,6 +61,8 @@ export default function AccountPage() {
   const [notice, setNotice] = useState<string | null>(null);
   // Listing awaiting delete confirmation (drives the in-app confirm modal).
   const [pendingDelete, setPendingDelete] = useState<Listing | null>(null);
+  const [pendingLogoutAll, setPendingLogoutAll] = useState(false);
+  const [logoutAllBusy, setLogoutAllBusy] = useState(false);
   // Listing being reported (Purchases tab), and that dialog's own busy/error state.
   const [reporting, setReporting] = useState<Listing | null>(null);
   const [reportBusy, setReportBusy] = useState(false);
@@ -194,16 +197,43 @@ export default function AccountPage() {
     }
   }
 
-  async function handleLogout() {
-    // `logout` drops our cookie; `signOutAll` also clears any Firebase identity
-    // still live in this tab, so the next sign-in asks who you are rather than
-    // silently reusing the last one.
-    await logout();
-    await signOutAll().catch(() => {});
+  function clearSignedInState() {
     setProfile(null);
     setAccount(null);
     setMine(null);
     setPurchases(null);
+  }
+
+  async function handleLogout() {
+    // `logout` drops our cookie; `signOutAll` also clears any Firebase identity
+    // still live in this tab, so the next sign-in asks who you are rather than
+    // silently reusing the last one.
+    //
+    // Web-only, deliberately: this signs the browser out and leaves the player's
+    // KSP installs linked. Ending those too is the separate button below.
+    await logout();
+    await signOutAll().catch(() => {});
+    clearSignedInState();
+  }
+
+  async function confirmLogoutEverywhere() {
+    setLogoutAllBusy(true);
+    setError(null);
+    try {
+      await logoutEverywhere();
+      await signOutAll().catch(() => {});
+      clearSignedInState();
+    } catch (e) {
+      // Reported rather than swallowed: the whole point of this button is ending
+      // sessions somewhere the player no longer trusts, so "it silently did
+      // nothing" is the one outcome they must not have to guess at. The dialog
+      // closes either way, because the banner it would otherwise cover is where
+      // this lands.
+      setError(e instanceof Error ? e.message : "Couldn't log out everywhere.");
+    } finally {
+      setLogoutAllBusy(false);
+      setPendingLogoutAll(false);
+    }
   }
 
   return (
@@ -242,12 +272,26 @@ export default function AccountPage() {
                     {account?.username ? `@${account.username} · ` : ""}Level {profile.level}
                   </p>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex flex-wrap items-center gap-3">
                   <Badge variant="secondary" className="h-10 gap-1.5 px-4 text-base">
                     <Coins className="h-4 w-4" /> {formatCoins(profile.balance)} KCoins
                   </Badge>
                   <Button variant="outline" onClick={handleLogout}>
                     <LogOut /> Log out
+                  </Button>
+                  {/* Kept as a separate control rather than folded into "Log out":
+                      this one unlinks every KSP install too, and that is a decision
+                      to take on purpose, not a side effect of leaving the site.
+                      Red because of what it does, not to draw the eye — the
+                      destructive variant here is a hairline border and red text on a
+                      transparent background, so it still reads as the secondary
+                      action next to "Log out" while matching the confirm dialog,
+                      which has always been `destructive`. */}
+                  <Button
+                    variant="destructive"
+                    onClick={() => setPendingLogoutAll(true)}
+                  >
+                    Log out everywhere
                   </Button>
                 </div>
               </CardContent>
@@ -376,6 +420,28 @@ export default function AccountPage() {
           busy={busyId === pendingDelete.listing_id}
           onConfirm={confirmDelete}
           onCancel={() => setPendingDelete(null)}
+        />
+      )}
+
+      {pendingLogoutAll && (
+        <ConfirmDialog
+          title="Log out everywhere?"
+          description={
+            <>
+              Ends this browser session, any other browser you are signed in on, and{" "}
+              <span className="font-medium text-foreground">
+                every KSP install linked to this account
+              </span>
+              . Nothing is deleted, but the mod will ask for a fresh link code the
+              next time you play. Use this if your account is signed in somewhere you
+              no longer control.
+            </>
+          }
+          confirmLabel="Log out everywhere"
+          destructive
+          busy={logoutAllBusy}
+          onConfirm={confirmLogoutEverywhere}
+          onCancel={() => !logoutAllBusy && setPendingLogoutAll(false)}
         />
       )}
 

@@ -33,3 +33,6 @@ next-env.d.ts
 # firebase
 /.firebase
 /functions/node_modules
+
+# Agent guidance for the GK-DW workspace, filter-out for possible private information
+/CLAUDE.md

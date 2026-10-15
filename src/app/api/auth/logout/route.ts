@@ -1,5 +1,4 @@
-import { NextResponse } from "next/server";
-import { botFetch, clearSessionCookie, guard } from "@/lib/server-api";
+import { guard, signOut } from "@/lib/server-api";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,27 +14,19 @@ export async function POST(req: Request) {
   const denied = await guard(req);
   if (denied) return denied;
 
-  // Actually revoke the session, don't just stop sending it. Clearing the cookie
-  // alone left the token itself valid for its full 30 days, so anything that had
-  // captured a `__session` kept working no matter how many times the owner of the
-  // account signed out — and a user with no KSP install had no revoke surface at
-  // all, since the mod is the only other place that offers one.
+  // Actually revoke, don't just stop sending the cookie. Clearing it alone left
+  // the token valid for its full 30 days, so anything that had captured a
+  // `__session` kept working no matter how many times the account's owner signed
+  // out.
   //
-  // `logout_all` bumps the account's token version, so this signs the account out
-  // of every device including a linked KSP client. That is the deliberate
-  // trade-off: "sign out" that leaves a stolen token live is not a sign-out, and
-  // re-linking the game is a smaller cost than a month of unrevocable access.
+  // WEB-ONLY revocation. This used to call `logout_all`, which bumps the account's
+  // single global token version — so signing out of a browser also 401'd every KSP
+  // install the account had. Each install only found out at its next launch, which
+  // made one sign-out here read as the mod unlinking itself at random for days
+  // afterwards. `logout_web` bumps a counter only web-audience tokens check: every
+  // browser session for this account ends, the game keeps playing.
   //
-  // Failure is tolerated on purpose. The cookie must clear even when the bot is
-  // down, or a user who wants out of a shared browser is told "try again later"
-  // and left signed in — the worse of the two failures by a distance.
-  try {
-    await botFetch("/api/v1/auth/logout_all", { method: "POST" });
-  } catch (e) {
-    console.error("[bff] logout_all failed; clearing the cookie regardless:", e);
-  }
-
-  const res = NextResponse.json({ success: true });
-  clearSessionCookie(res);
-  return res;
+  // Ending the game sessions too is still one button away — /api/auth/logout_all,
+  // offered on the account page as "Log out everywhere".
+  return signOut("/api/v1/auth/logout_web");
 }
