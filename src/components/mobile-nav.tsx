@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { BrandLogo } from "@/components/brand";
 import { docsNav, visibleNav } from "@/config/nav";
 import { useAdminAccess } from "@/lib/admin";
+import { useServerAccess } from "@/lib/mp-servers";
 import { useSignedIn } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
@@ -17,9 +18,13 @@ export function MobileNav() {
   const pathname = usePathname();
   const signedIn = useSignedIn();
   const adminAccess = useAdminAccess();
-  const nav = adminAccess
-    ? [...visibleNav(signedIn), { title: "Admin", href: "/admin" }]
-    : visibleNav(signedIn);
+  // Servers: the owner, guild admins and testers (the bot 404s everyone else).
+  const serverAccess = useServerAccess();
+  const nav = [
+    ...visibleNav(signedIn),
+    ...(serverAccess ? [{ title: "Servers", href: "/servers" }] : []),
+    ...(adminAccess ? [{ title: "Admin", href: "/admin" }] : []),
+  ];
 
   // Close the drawer whenever the route changes.
   React.useEffect(() => {

@@ -25,8 +25,8 @@ import { cn } from "@/lib/utils";
  * is listed read-only with the reason; controls the host would refuse are not
  * drawn at all.
  *
- * Renders nothing for an account with no registered servers — most players never
- * host, and an empty card is noise on their account page.
+ * Lives on its own page (/servers), linked in the header only for the owner,
+ * guild admins and testers; the bot answers 404 to everyone else.
  */
 const LIST_POLL_MS = 30_000;
 const DEFAULT_WARN = 60;
@@ -66,8 +66,13 @@ export function ServersCard() {
     return () => clearInterval(t);
   }, [load]);
 
-  if (servers === null) return null;
-  if (servers.length === 0 && !error) return null;
+  if (servers === null) {
+    return (
+      <div className="flex items-center justify-center py-16 text-muted-foreground">
+        <Loader2 className="h-6 w-6 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <Card>
@@ -82,6 +87,12 @@ export function ServersCard() {
       </CardHeader>
       <CardContent className="space-y-3">
         {error && <p className="text-sm text-destructive">{error}</p>}
+        {servers.length === 0 && !error && (
+          <p className="text-sm text-muted-foreground">
+            You have not registered a multiplayer server yet. Registering one gives it an
+            identity the server browser trusts; the self-hosting guide walks through it.
+          </p>
+        )}
         {servers.map((s) => (
           <ServerRow
             key={s.server_id}

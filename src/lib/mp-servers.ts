@@ -9,8 +9,10 @@
  *
  * Same-origin BFF only, like every other lib module here.
  */
+import { useEffect, useState } from "react";
+
 import { appCheckHeader } from "./firebase";
-import { notifySessionChanged } from "./session";
+import { notifySessionChanged, useSignedIn } from "./session";
 import { jsonOrThrow, safeFetch } from "./api-error";
 
 export type RemoteAdminState = "enabled" | "disabled" | "absent" | "unknown";
@@ -60,12 +62,59 @@ async function authedFetch(input: string, init: RequestInit = {}): Promise<Respo
   return res;
 }
 
+// ── Who may see the Servers page ─────────────────────────────────────────────
+//
+// The owner, mapped guild admins and accounts on the owner's tester list. The bot
+// answers 404 to everyone else on every server-management route, so this only
+// decides whether the header draws the link — it is not the gate.
+
+export type ServerAccess = "owner" | "admin" | "tester";
+
+let accessProbe: Promise<ServerAccess | null> | null = null;
+
+function probeServerAccess(): Promise<ServerAccess | null> {
+  accessProbe ??= (async () => {
+    try {
+      const headers = new Headers();
+      for (const [k, v] of Object.entries(await appCheckHeader())) headers.set(k, v);
+      const res = await safeFetch("/api/mp/access", { headers, cache: "no-store" });
+      if (!res.ok) return null;
+      const data = (await res.json()) as { access?: ServerAccess };
+      return data.access ?? null;
+    } catch {
+      return null;
+    }
+  })();
+  return accessProbe;
+}
+
+/** Null until known, and null for anyone without access. */
+export function useServerAccess(): ServerAccess | null {
+  const signedIn = useSignedIn();
+  const [access, setAccess] = useState<ServerAccess | null>(null);
+  useEffect(() => {
+    if (signedIn !== true) {
+      if (signedIn === false) accessProbe = null;
+      setAccess(null);
+      return;
+    }
+    let cancelled = false;
+    probeServerAccess().then((a) => {
+      if (!cancelled) setAccess(a);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [signedIn]);
+  return access;
+}
+
 /** The signed-in account's registered servers; null when signed out. */
 export async function fetchServers(): Promise<MpServer[] | null> {
   const res = await authedFetch("/api/mp/servers", { cache: "no-store" });
   if (res.status === 401) return null;
-  // 404: multiplayer is switched off on the bot — nothing to show, not an error.
-  if (res.status === 404) return [];
+  // 404: no access to server management, or multiplayer is off on the bot.
+  if (res.status === 404) throw new Error("Server management isn't available to this account.");
   return (await jsonOrThrow<{ servers: MpServer[] }>(res)).servers;
 }
 

@@ -675,3 +675,33 @@ export async function backfillCraftHashes(
     await authedFetch(`/api/admin/craftbans/backfill?limit=${limit}`, { method: "POST" }),
   );
 }
+
+// ── Testers (owner) ──────────────────────────────────────────────────────────
+
+/** An account with early access to surfaces not open to everyone yet — today the
+ *  multiplayer server-management page. Managed by the owner; `data/testers.py`. */
+export interface Tester {
+  account_id: string;
+  username: string;
+  display_name: string;
+  note?: string;
+  added_at?: string;
+}
+
+export async function fetchTesters(): Promise<{ testers: Tester[]; max: number }> {
+  return jsonOrThrow(await authedFetch("/api/admin/testers"));
+}
+
+/** Add by Boundless username (the immutable handle). */
+export async function addTester(username: string, note = ""): Promise<Tester> {
+  const res = await authedFetch("/api/admin/testers", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ username, note }),
+  });
+  return (await jsonOrThrow<{ tester: Tester }>(res)).tester;
+}
+
+export async function removeTester(accountId: string): Promise<void> {
+  await jsonOrThrow(await authedFetch(`/api/admin/testers/${accountId}`, { method: "DELETE" }));
+}

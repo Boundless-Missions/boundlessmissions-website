@@ -19,7 +19,6 @@ import { DiscordLinkCard } from "@/components/account/discord-link-card";
 import { FriendsCard } from "@/components/account/friends-card";
 import { TicketsCard } from "@/components/account/tickets-card";
 import { TwoFactorCard } from "@/components/account/two-factor-card";
-import { ServersCard } from "@/components/account/servers-card";
 import { ReportDialog } from "@/components/marketplace/report-dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
@@ -329,10 +328,6 @@ export default function AccountPage() {
                     into two lines. */}
                 <div className="lg:col-span-2">
                   <FriendsCard account={account} />
-                </div>
-                {/* Draws nothing for an account that hosts no servers. */}
-                <div className="empty:hidden lg:col-span-2">
-                  <ServersCard />
                 </div>
                 <div className="lg:col-span-2">
                   <TicketsCard />

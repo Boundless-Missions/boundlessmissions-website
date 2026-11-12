@@ -17,6 +17,7 @@ import {
   Ban,
   Coins,
   Fingerprint,
+  FlaskConical,
   Gauge,
   LayoutDashboard,
   Loader2,
@@ -44,6 +45,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   addCraftBan,
+  addTester,
+  fetchTesters,
+  removeTester,
+  type Tester,
   adjustAdminUser,
   backfillCraftHashes,
   bumpPolicy,
@@ -91,6 +96,7 @@ type Tab =
   | "listings"
   | "craftbans"
   | "users"
+  | "testers"
   | "messaging"
   | "channels"
   | "version"
@@ -102,6 +108,7 @@ const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: "listings", label: "Listings", icon: <Package className="h-4 w-4" /> },
   { id: "craftbans", label: "Craft Bans", icon: <Fingerprint className="h-4 w-4" /> },
   { id: "users", label: "Users", icon: <Users className="h-4 w-4" /> },
+  { id: "testers", label: "Testers", icon: <FlaskConical className="h-4 w-4" /> },
   { id: "messaging", label: "Messaging", icon: <Megaphone className="h-4 w-4" /> },
   { id: "channels", label: "Channels", icon: <Lock className="h-4 w-4" /> },
   { id: "version", label: "Mod Version", icon: <UploadCloud className="h-4 w-4" /> },
@@ -115,7 +122,7 @@ const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
 // mapped admin role reaches. The bot's get_owner is the real gate; this only
 // decides whether the tab is drawn.
 const OWNER_ONLY_TABS: ReadonlySet<Tab> = new Set([
-  "users", "craftbans", "version", "costs", "controls",
+  "users", "testers", "craftbans", "version", "costs", "controls",
 ]);
 
 export default function AdminPage() {
@@ -206,6 +213,7 @@ export default function AdminPage() {
             {tab === "listings" && <ListingsTab />}
             {tab === "craftbans" && <CraftBansTab />}
             {tab === "users" && <UsersTab />}
+            {tab === "testers" && <TestersTab />}
             {tab === "messaging" && <MessagingTab guilds={guilds} isOwner={access?.is_owner === true} />}
             {tab === "channels" && <ChannelsTab guilds={guilds} onRefresh={loadGuilds} />}
             {tab === "version" && <VersionTab />}
@@ -2754,6 +2762,125 @@ function ToggleRow({
       <Button variant={on ? "default" : "outline"} size="sm" onClick={onToggle} disabled={busy}>
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : on ? "Enabled" : "Disabled"}
       </Button>
+    </div>
+  );
+}
+
+
+/**
+ * Testers: accounts with early access to surfaces not open to everyone yet.
+ * Today that is the multiplayer Servers page (owner, guild admins and these
+ * accounts). Added by Boundless username; the bot resolves it to the account.
+ */
+function TestersTab() {
+  const [rows, setRows] = useState<Tester[] | null>(null);
+  const [max, setMax] = useState(0);
+  const [name, setName] = useState("");
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [confirm, setConfirm] = useState<Tester | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      const r = await fetchTesters();
+      setRows(r.testers);
+      setMax(r.max);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't load testers.");
+      setRows([]);
+    }
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const add = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await addTester(name.trim(), note.trim());
+      setName("");
+      setNote("");
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't add that tester.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardContent className="space-y-3 p-5">
+          <p className="text-sm text-muted-foreground">
+            Testers see early-access pages that are not open to everyone yet: today, the
+            multiplayer <b>Servers</b> page. You and guild admins already have it.
+          </p>
+          <form
+            className="flex flex-wrap gap-2"
+            onSubmit={(e) => { e.preventDefault(); if (name.trim()) void add(); }}
+          >
+            <input
+              value={name} onChange={(e) => setName(e.target.value)}
+              placeholder="Boundless username" aria-label="Boundless username"
+              className="h-9 min-w-0 flex-1 rounded-md border border-border bg-transparent px-3 text-sm"
+            />
+            <input
+              value={note} onChange={(e) => setNote(e.target.value)} maxLength={120}
+              placeholder="Note (optional)" aria-label="Note"
+              className="h-9 min-w-0 flex-1 rounded-md border border-border bg-transparent px-3 text-sm"
+            />
+            <Button type="submit" size="sm" disabled={busy || !name.trim()}>
+              {busy && <Loader2 className="h-4 w-4 animate-spin" />} Add tester
+            </Button>
+          </form>
+          {error && <p className="text-sm text-destructive">{error}</p>}
+        </CardContent>
+      </Card>
+      <Card>
+        <CardContent className="p-5">
+          {rows === null ? (
+            <Loader2 className="h-5 w-5 animate-spin" />
+          ) : rows.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No testers yet.</p>
+          ) : (
+            <>
+              <p className="mb-2 text-xs text-muted-foreground">{rows.length} of {max}</p>
+              <ul className="divide-y divide-border text-sm">
+                {rows.map((t) => (
+                  <li key={t.account_id} className="flex flex-wrap items-center gap-3 py-2">
+                    <span className="font-medium">{t.username || t.display_name || t.account_id}</span>
+                    {t.note && <span className="text-muted-foreground">{t.note}</span>}
+                    <span className="ml-auto font-mono text-xs text-muted-foreground">{t.account_id}</span>
+                    <Button size="sm" variant="ghost" onClick={() => setConfirm(t)}>
+                      <Trash2 className="h-4 w-4" /> Remove
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </CardContent>
+      </Card>
+      {confirm && (
+        <ConfirmDialog
+          title={`Remove ${confirm.username || confirm.account_id} as a tester?`}
+          description="They lose access to early-access pages on their next page load."
+          confirmLabel="Remove"
+          destructive
+          onCancel={() => setConfirm(null)}
+          onConfirm={async () => {
+            const t = confirm;
+            setConfirm(null);
+            try {
+              await removeTester(t.account_id);
+              await load();
+            } catch (e) {
+              setError(e instanceof Error ? e.message : "Couldn't remove that tester.");
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

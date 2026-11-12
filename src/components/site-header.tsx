@@ -10,6 +10,7 @@ import { MobileNav } from "@/components/mobile-nav";
 import { PatreonIcon } from "@/components/brand";
 import { visibleNav, siteConfig } from "@/config/nav";
 import { useAdminAccess } from "@/lib/admin";
+import { useServerAccess } from "@/lib/mp-servers";
 import { useSignedIn } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
@@ -20,9 +21,13 @@ export function SiteHeader() {
   // The Admin tab exists for the BOT_OWNER_ID account and for mapped guild
   // admins; the server re-checks on every call, so this is presentation, not
   // protection.
-  const nav = adminAccess
-    ? [...visibleNav(signedIn), { title: "Admin", href: "/admin" }]
-    : visibleNav(signedIn);
+  // Servers: the owner, guild admins and testers (the bot 404s everyone else).
+  const serverAccess = useServerAccess();
+  const nav = [
+    ...visibleNav(signedIn),
+    ...(serverAccess ? [{ title: "Servers", href: "/servers" }] : []),
+    ...(adminAccess ? [{ title: "Admin", href: "/admin" }] : []),
+  ];
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/70 bg-background/80 backdrop-blur-md">
