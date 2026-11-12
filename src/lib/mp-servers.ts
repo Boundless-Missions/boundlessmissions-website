@@ -202,4 +202,6 @@ export const ACTION_LABELS: Record<string, string> = {
   "service.restart": "Restart",
   "service.stop": "Stop",
   "service.start": "Start",
+  "metrics.get": "Usage",
+  "metrics.set": "Usage logging",
 };

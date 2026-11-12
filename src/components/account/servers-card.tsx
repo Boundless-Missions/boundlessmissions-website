@@ -6,6 +6,7 @@ import {
   ChevronDown, ChevronRight, ShieldAlert,
 } from "lucide-react";
 
+import { MetricsPanel } from "@/components/account/metrics-panel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -178,7 +179,7 @@ function ReadOnlyNote({ s }: { s: MpServer }) {
   );
 }
 
-type Panel = "status" | "settings" | "mods" | "history";
+type Panel = "status" | "usage" | "settings" | "mods" | "history";
 
 function ServerAdmin({ server: s, onChanged }: { server: MpServer; onChanged: () => void }) {
   const allow = new Set(s.agent.allow);
@@ -203,6 +204,7 @@ function ServerAdmin({ server: s, onChanged }: { server: MpServer; onChanged: ()
 
   const tabs: { id: Panel; label: string; need?: string }[] = [
     { id: "status", label: "Status", need: "status" },
+    { id: "usage", label: "Usage", need: "metrics.get" },
     { id: "settings", label: "Settings", need: "settings.get" },
     { id: "mods", label: "Mods", need: "modset.set" },
     { id: "history", label: "History" },
@@ -239,6 +241,7 @@ function ServerAdmin({ server: s, onChanged }: { server: MpServer; onChanged: ()
       )}
       {note && <p className="text-sm text-muted-foreground">{note}</p>}
       {panel === "status" && <StatusPanel server={s} busy={busy} act={act} />}
+      {panel === "usage" && <MetricsPanel server={s} canToggle={allow.has("metrics.set")} />}
       {panel === "settings" && (
         <SettingsPanel server={s} canSave={allow.has("settings.set")} busy={busy} act={act}
                        setNote={setNote} />
