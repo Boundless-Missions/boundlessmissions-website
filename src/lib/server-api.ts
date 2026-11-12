@@ -13,8 +13,12 @@ import { describeStatus, UPSTREAM_DOWN_STATUS } from "./api-error";
 import { SESSION_HINT_COOKIE } from "@/config/session";
 
 /** 403 returned when App Check enforcement is on and the token is missing/invalid. */
+/** Refusals are per-request answers too; never let a shared cache keep one. */
+const NO_STORE = { "cache-control": "no-store" };
+
 function appCheckDenied(): NextResponse {
-  return NextResponse.json({ detail: "App Check verification failed." }, { status: 403 });
+  return NextResponse.json({ detail: "App Check verification failed." },
+                           { status: 403, headers: NO_STORE });
 }
 
 const BOT_API_URL = (process.env.BOT_API_URL || "http://localhost:5022").replace(/\/$/, "");
@@ -224,7 +228,7 @@ export async function guard(
   // 20 MB multipart body was parsed into the SSR function's heap before the bot's
   // `get_owner` could refuse it.
   if (opts.session !== false && !looksLikeSessionToken(await getSessionToken())) {
-    return NextResponse.json({ detail: describeStatus(401) }, { status: 401 });
+    return NextResponse.json({ detail: describeStatus(401) }, { status: 401, headers: NO_STORE });
   }
   if (!(await appCheckOk())) return appCheckDenied();
   return null;
@@ -263,7 +267,16 @@ export async function proxy(
   if (!r.ok && !hasDetail(body)) {
     body = JSON.stringify({ detail: describeStatus(r.status) });
   }
-  if (cacheControl && r.ok) headers["cache-control"] = cacheControl;
+  // A signed-in answer is about ONE person and must never sit in a shared cache.
+  // Firebase Hosting's CDN keeps some responses it was not told about — a 404 was
+  // seen served with `max-age=600` and `x-cache: HIT` to a different account
+  // than the one it was computed for (the owner was told "not an admin" by a
+  // player's cached whoami). `private, no-store` forbids that for every status.
+  // Public routes (auth=false) keep their explicit cacheControl on success, and
+  // their failures are not cached either.
+  if (auth) headers["cache-control"] = "private, no-store";
+  else if (cacheControl && r.ok) headers["cache-control"] = cacheControl;
+  else if (!r.ok) headers["cache-control"] = "no-store";
   const res = new NextResponse(body, { status: r.status, headers });
 
   // Any authed call is evidence about the session, so keep the readable hint in
