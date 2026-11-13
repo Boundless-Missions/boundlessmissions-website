@@ -2,76 +2,78 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ChevronRight, Loader2 } from "lucide-react";
 
-import { SiteHeader } from "@/components/site-header";
-import { SiteFooter } from "@/components/site-footer";
-import { Button } from "@/components/ui/button";
-import { ServersCard } from "@/components/account/servers-card";
 import { AddServerCard } from "@/components/account/add-server-card";
-import { useServerAccess } from "@/lib/mp-servers";
-import { useSignedIn } from "@/lib/session";
+import { AgentBadge } from "@/components/account/servers-card";
+import { ServersGate } from "@/components/servers/servers-gate";
+import { fetchServers, type MpServer } from "@/lib/mp-servers";
 
 /**
- * /servers — multiplayer server management (ksp-mp-remote-host-admin.md).
- *
- * Not open to everyone yet: the owner, mapped guild admins and accounts on the
- * owner's tester list. The header only links it for them; anyone else who types
- * the URL gets the same "not available" as a page that does not exist, and the
- * bot refuses every call behind it regardless of what this page draws.
+ * /servers — the account's multiplayer servers. With exactly one, it goes
+ * straight into that server's manager (/servers/<id>); `?all=1` (the manager's
+ * "Servers" link) stays here, which is also where a new server is added.
  */
 export default function ServersPage() {
-  const signedIn = useSignedIn();
-  const access = useServerAccess();
-  // useServerAccess is null both while probing and when refused; give the probe
-  // a moment before concluding "no access", so a tester never sees a flash of it.
-  const [settled, setSettled] = useState(false);
-  // Bumped after a pairing so the list remounts and shows the new server.
-  const [listKey, setListKey] = useState(0);
-  const settle = useCallback(() => setSettled(true), []);
-  useEffect(() => {
-    if (signedIn !== true || access) return;
-    const t = setTimeout(settle, 2500);
-    return () => clearTimeout(t);
-  }, [signedIn, access, settle]);
+  return (
+    <ServersGate title="Servers">
+      <ServerList />
+    </ServersGate>
+  );
+}
 
-  let body: React.ReactNode;
-  if (signedIn === null || (signedIn && !access && !settled)) {
-    body = (
-      <div className="flex items-center justify-center py-24 text-muted-foreground">
-        <Loader2 className="h-6 w-6 animate-spin" />
-      </div>
-    );
-  } else if (!signedIn) {
-    body = (
-      <div className="py-16 text-center text-muted-foreground">
-        <p className="mb-4">Sign in to manage your servers.</p>
-        <Button asChild><Link href="/account">Sign in</Link></Button>
-      </div>
-    );
-  } else if (!access) {
-    body = (
-      <p className="py-16 text-center text-muted-foreground">
-        Server management isn&apos;t available to this account yet.
-      </p>
-    );
-  } else {
-    body = (
-      <div className="space-y-4">
-        <AddServerCard onPaired={() => setListKey((k) => k + 1)} />
-        <ServersCard key={listKey} />
-      </div>
-    );
-  }
+function ServerList() {
+  const router = useRouter();
+  const [servers, setServers] = useState<MpServer[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      const list = await fetchServers();
+      setServers(list ?? []);
+      const stay = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("all");
+      const live = (list ?? []).filter((s) => !s.revoked);
+      if (!stay && live.length === 1) router.replace(`/servers/${live[0].server_id}`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't load your servers.");
+      setServers([]);
+    }
+  }, [router]);
+  useEffect(() => { void load(); }, [load]);
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <SiteHeader />
-      <main className="container flex-1 py-8">
-        <h1 className="mb-6 text-3xl font-bold tracking-tight">Servers</h1>
-        {body}
-      </main>
-      <SiteFooter />
+    <div className="space-y-4">
+      <AddServerCard onPaired={() => { void load(); }} />
+      {error && <p className="text-sm text-destructive">{error}</p>}
+      {servers === null ? (
+        <div className="flex justify-center py-16 text-muted-foreground"><Loader2 className="h-6 w-6 animate-spin" /></div>
+      ) : servers.length === 0 ? (
+        <p className="py-8 text-center text-sm text-muted-foreground">
+          No servers yet. Add one with the command above.
+        </p>
+      ) : (
+        <ul className="space-y-2">
+          {servers.map((s) => (
+            <li key={s.server_id}>
+              <Link href={`/servers/${s.server_id}`}
+                    className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-4 hover:border-primary/50">
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-medium">{s.name}</span>
+                  <span className="block font-mono text-xs text-muted-foreground">
+                    {s.server_id}{s.listing?.address ? ` · ${s.listing.address}` : ""}
+                  </span>
+                </span>
+                {s.agent.online && typeof s.agent.players === "number" && (
+                  <span className="text-xs text-muted-foreground">{s.agent.players}/{s.agent.max_players ?? "?"} players</span>
+                )}
+                <AgentBadge s={s} />
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

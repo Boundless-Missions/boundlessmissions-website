@@ -348,7 +348,13 @@ export function MetricsPanel({ server, canToggle }: { server: MpServer; canToggl
       const to = Date.now() / 1000;
       const c = await run(server.server_id, "metrics.get",
         { from: to - range.seconds, to, max_points: MAX_POINTS });
-      setData(c.result as unknown as MetricsData);
+      const r = c.result as unknown as MetricsData | null;
+      // A malformed answer (an older agent, a proxy page) must not take the page
+      // down: refuse it here, with a sentence, instead of crashing a chart.
+      if (!r || !Array.isArray(r.t) || !r.avg || !r.sampling || !r.config || !r.stats) {
+        throw new Error("The server answered in a shape this page does not understand. Is its agent up to date?");
+      }
+      setData(r);
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't load usage.");

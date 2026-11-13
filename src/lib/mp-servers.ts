@@ -27,6 +27,36 @@ export interface AgentState {
   players?: number | null;
   max_players?: number | null;
   seen_seconds_ago?: number;
+  // Live figures the agent reports on every poll (server manager header).
+  vessels_active?: number | null;
+  vessels_total?: number | null;
+  bubbles_live?: number | null;
+  server_type?: string | null;
+  universe_id?: string | null;
+  started_wc?: number | null;
+  store_bytes?: number | null;
+  cpu_pct?: number | null;
+  mem_bytes?: number | null;
+  host_mem_used?: number | null;
+  host_mem_total?: number | null;
+  host_load1?: number | null;
+  cpu_count?: number | null;
+}
+
+/** The server's public listing on the master (null when not listed). */
+export interface MasterListing {
+  address?: string | null;
+  port?: number | null;
+  reachable?: string | null;
+  players?: number | null;
+  max_players?: number | null;
+  tags?: string[];
+  description?: string | null;
+  thumbnail?: string | null;
+  blanked?: boolean;
+  verified?: boolean;
+  last_seen_wc?: number | null;
+  mod_count?: number | null;
 }
 
 export interface MpServer {
@@ -36,6 +66,7 @@ export interface MpServer {
   created_at?: string;
   keys_universe_id?: string;
   agent: AgentState;
+  listing?: MasterListing | null;
 }
 
 export type CommandState = "pending" | "delivered" | "done" | "failed" | "expired";
@@ -234,4 +265,5 @@ export const ACTION_LABELS: Record<string, string> = {
   "service.start": "Start",
   "metrics.get": "Usage",
   "metrics.set": "Usage logging",
+  "listing.set": "Save listing",
 };

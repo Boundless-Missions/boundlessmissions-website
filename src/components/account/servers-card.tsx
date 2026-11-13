@@ -10,7 +10,6 @@ import { MetricsPanel } from "@/components/account/metrics-panel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   ACTION_LABELS, CommandError, fetchHistory, fetchServers, run,
   type HostCommand, type MpServer,
@@ -32,15 +31,15 @@ import { cn } from "@/lib/utils";
 const LIST_POLL_MS = 30_000;
 const DEFAULT_WARN = 60;
 
-function errText(e: unknown, fallback: string): string {
+export function errText(e: unknown, fallback: string): string {
   return e instanceof Error ? e.message : fallback;
 }
 
-function problemsOf(e: unknown): string[] {
+export function problemsOf(e: unknown): string[] {
   return e instanceof CommandError ? e.command.problems ?? [] : [];
 }
 
-function when(iso?: string | null): string {
+export function when(iso?: string | null): string {
   if (!iso) return "";
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? "" : d.toLocaleString();
@@ -108,7 +107,7 @@ export function ServersCard() {
   );
 }
 
-function AgentBadge({ s }: { s: MpServer }) {
+export function AgentBadge({ s }: { s: MpServer }) {
   if (s.revoked) return <Badge variant="muted">Revoked</Badge>;
   if (!s.agent.online) return <Badge variant="muted">Agent offline</Badge>;
   if (s.agent.remote_admin !== "enabled") return <Badge variant="outline">Read-only</Badge>;
@@ -157,7 +156,7 @@ function ServerRow({ server: s, open, onToggle, onChanged }: {
   );
 }
 
-function ReadOnlyNote({ s }: { s: MpServer }) {
+export function ReadOnlyNote({ s }: { s: MpServer }) {
   let text: string;
   if (s.revoked) {
     text = "This server's credential was revoked. Register it again to manage it.";
@@ -252,121 +251,118 @@ function ServerAdmin({ server: s, onChanged }: { server: MpServer; onChanged: ()
   );
 }
 
-type Act = (label: string, fn: () => Promise<void>) => Promise<void>;
+export type Act = (label: string, fn: () => Promise<void>) => Promise<void>;
 
-function PowerBar({ server: s, allow, busy, act, setNote }: {
+export function PowerBar({ server: s, allow, busy, act, setNote }: {
   server: MpServer; allow: Set<string>; busy: string | null; act: Act;
   setNote: (n: string | null) => void;
 }) {
-  const [warn, setWarn] = useState(DEFAULT_WARN);
-  // Shown to players in game with the countdown (game/notices.py), e.g. "new mods".
-  const [notice, setNotice] = useState("");
+  // One row of buttons; restart and stop open an inline confirmation that holds
+  // the warning time, the message players see with the countdown
+  // (game/notices.py) and, for stop, the two-factor code. Nothing sits inline
+  // permanently, so it fits a narrow header column as well as a wide panel.
   const [confirm, setConfirm] = useState<"restart" | "stop" | null>(null);
+  const [warn, setWarn] = useState(DEFAULT_WARN);
+  const [notice, setNotice] = useState("");
   const [code, setCode] = useState("");
   const running = s.agent.active_state === "active";
-  // A restart with a long warning legitimately takes that long to answer.
-  const budget = (warn + 90) * 1000;
 
   const doPower = (cmd: string, label: string, args: Record<string, unknown> = {},
                    totpCode = "") =>
     act(label, async () => {
+      // A restart with a long warning legitimately takes that long to answer.
+      const budget = (Number(args.warn_seconds ?? 0) + 90) * 1000;
       const c = await run(s.server_id, cmd, args, { totpCode, budgetMs: budget });
       const st = (c.result as { active_state?: string } | null)?.active_state;
       setNote(`${ACTION_LABELS[cmd]}: done${st ? ` (server is ${st})` : ""}.`);
     });
 
+  const go = () => {
+    const kind = confirm;
+    if (!kind) return;
+    const args = { warn_seconds: warn, message: notice.trim() };
+    const c = code;
+    setConfirm(null);
+    setCode("");
+    void doPower(`service.${kind}`, kind, args, kind === "stop" ? c : "");
+  };
+
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      {allow.has("service.restart") && running && (
-        <Button size="sm" variant="outline" disabled={!!busy} onClick={() => setConfirm("restart")}>
-          {busy === "restart" ? <Loader2 className="animate-spin" /> : <RotateCcw />} Restart
-        </Button>
-      )}
-      {allow.has("service.start") && !running && (
-        <Button size="sm" disabled={!!busy} onClick={() => doPower("service.start", "start")}>
-          {busy === "start" ? <Loader2 className="animate-spin" /> : <Play />} Start
-        </Button>
-      )}
-      {allow.has("service.reload") && running && (
-        <Button size="sm" variant="ghost" disabled={!!busy}
-                onClick={() => doPower("service.reload", "reload")}>
-          {busy === "reload" ? <Loader2 className="animate-spin" /> : <RefreshCw />} Reload config
-        </Button>
-      )}
-      {allow.has("service.stop") && running && (
-        <Button size="sm" variant="destructive" disabled={!!busy} onClick={() => setConfirm("stop")}>
-          {busy === "stop" ? <Loader2 className="animate-spin" /> : <Square />} Stop
-        </Button>
-      )}
-      {(allow.has("service.restart") || allow.has("service.stop")) && running && (
-        <label className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
-          Wait before restart/stop
-          <input
-            type="number" min={0} max={600} value={warn}
-            onChange={(e) => setWarn(Math.max(0, Math.min(600, Number(e.target.value) || 0)))}
-            className="h-8 w-20 rounded-md border border-border bg-transparent px-2 text-sm"
-            aria-label="Seconds to wait before restarting or stopping"
-          /> s
-          <input
-            value={notice} onChange={(e) => setNotice(e.target.value)} maxLength={200}
-            placeholder="Message to players (optional)"
-            aria-label="Message shown to players with the countdown"
-            className="h-8 w-56 rounded-md border border-border bg-transparent px-2 text-sm"
-          />
-        </label>
-      )}
-      {confirm === "restart" && (
-        <ConfirmDialog
-          title={`Restart ${s.name}?`}
-          description={warn
-            ? `Players online get an in-game countdown and are disconnected in ${warn} seconds. ` +
-              "They can rejoin once it is back up."
-            : "Players online are disconnected straight away, with no warning. " +
-              "They can rejoin once it is back up."}
-          confirmLabel="Restart"
-          onCancel={() => setConfirm(null)}
-          onConfirm={() => {
-            setConfirm(null);
-            void doPower("service.restart", "restart", { warn_seconds: warn, message: notice.trim() });
-          }}
-        />
-      )}
-      {confirm === "stop" && (
-        <div className="w-full rounded-md border border-destructive/40 p-3 text-sm">
-          <p className="mb-2">
-            Stopping takes {s.name} offline until someone starts it again. Confirm with your
-            two-factor code.
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center gap-2">
+        {allow.has("service.restart") && running && (
+          <Button size="sm" variant="outline" disabled={!!busy} onClick={() => setConfirm("restart")}>
+            {busy === "restart" ? <Loader2 className="animate-spin" /> : <RotateCcw />} Restart
+          </Button>
+        )}
+        {allow.has("service.start") && !running && (
+          <Button size="sm" disabled={!!busy} onClick={() => doPower("service.start", "start")}>
+            {busy === "start" ? <Loader2 className="animate-spin" /> : <Play />} Start
+          </Button>
+        )}
+        {allow.has("service.stop") && running && (
+          <Button size="sm" variant="destructive" disabled={!!busy} onClick={() => setConfirm("stop")}>
+            {busy === "stop" ? <Loader2 className="animate-spin" /> : <Square />} Stop
+          </Button>
+        )}
+        {allow.has("service.reload") && running && (
+          <Button size="sm" variant="ghost" disabled={!!busy} title="Re-read host.toml without restarting"
+                  onClick={() => doPower("service.reload", "reload")}>
+            {busy === "reload" ? <Loader2 className="animate-spin" /> : <RefreshCw />} Reload
+          </Button>
+        )}
+      </div>
+      {confirm && (
+        <form
+          className={cn("space-y-2 rounded-md border p-3 text-sm",
+            confirm === "stop" ? "border-destructive/40" : "border-border")}
+          onSubmit={(e) => { e.preventDefault(); go(); }}
+        >
+          <p>
+            {confirm === "stop"
+              ? `Stop ${s.name}? It stays offline until someone starts it again.`
+              : `Restart ${s.name}? Players can rejoin once it is back up.`}
           </p>
-          <form
-            className="flex flex-wrap gap-2"
-            onSubmit={(e) => {
-              e.preventDefault();
-              const c = code;
-              setCode("");
-              setConfirm(null);
-              void doPower("service.stop", "stop", { warn_seconds: warn, message: notice.trim() }, c);
-            }}
-          >
+          <label className="flex items-center gap-2 text-xs text-muted-foreground">
+            Warn players for
+            <input
+              type="number" min={0} max={600} value={warn}
+              onChange={(e) => setWarn(Math.max(0, Math.min(600, Number(e.target.value) || 0)))}
+              className="h-8 w-20 rounded-md border border-border bg-transparent px-2 text-sm text-foreground"
+              aria-label="Seconds of warning before it happens"
+            /> s {warn === 0 && <span className="text-amber-500">— no warning</span>}
+          </label>
+          {warn > 0 && (
+            <input
+              value={notice} onChange={(e) => setNotice(e.target.value)} maxLength={200}
+              placeholder="Message to players (optional)"
+              aria-label="Message shown to players with the countdown"
+              className="h-8 w-full rounded-md border border-border bg-transparent px-2 text-sm"
+            />
+          )}
+          {confirm === "stop" && (
             <input
               value={code} onChange={(e) => setCode(e.target.value)}
-              inputMode="numeric" autoComplete="one-time-code" placeholder="123 456"
+              inputMode="numeric" autoComplete="one-time-code" placeholder="Two-factor code"
               aria-label="Two-factor code"
-              className="h-9 w-36 rounded-md border border-border bg-transparent px-3 text-sm"
+              className="h-8 w-full rounded-md border border-border bg-transparent px-2 text-sm"
             />
-            <Button type="submit" size="sm" variant="destructive" disabled={!code.trim()}>
-              <Power /> Stop server
+          )}
+          <div className="flex gap-2">
+            <Button type="submit" size="sm" variant={confirm === "stop" ? "destructive" : "default"}
+                    disabled={confirm === "stop" && !code.trim()}>
+              {confirm === "stop" ? <Power /> : <RotateCcw />}
+              {confirm === "stop" ? "Stop server" : "Restart"}
             </Button>
-            <Button type="button" size="sm" variant="ghost" onClick={() => setConfirm(null)}>
-              Cancel
-            </Button>
-          </form>
-        </div>
+            <Button type="button" size="sm" variant="ghost" onClick={() => setConfirm(null)}>Cancel</Button>
+          </div>
+        </form>
       )}
     </div>
   );
 }
 
-function StatusPanel({ server: s, busy, act }: { server: MpServer; busy: string | null; act: Act }) {
+export function StatusPanel({ server: s, busy, act }: { server: MpServer; busy: string | null; act: Act }) {
   const [status, setStatus] = useState<Record<string, unknown> | null>(null);
   const refresh = () => act("status", async () => {
     setStatus((await run(s.server_id, "status")).result ?? null);
@@ -409,7 +405,7 @@ function StatusPanel({ server: s, busy, act }: { server: MpServer; busy: string 
   );
 }
 
-function SettingsPanel({ server: s, canSave, busy, act, setNote }: {
+export function SettingsPanel({ server: s, canSave, busy, act, setNote }: {
   server: MpServer; canSave: boolean; busy: string | null; act: Act;
   setNote: (n: string | null) => void;
 }) {
@@ -484,7 +480,7 @@ function SettingsPanel({ server: s, canSave, busy, act, setNote }: {
   );
 }
 
-function ModsPanel({ server: s, busy, act, setNote }: {
+export function ModsPanel({ server: s, busy, act, setNote }: {
   server: MpServer; busy: string | null; act: Act; setNote: (n: string | null) => void;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
@@ -520,7 +516,7 @@ function ModsPanel({ server: s, busy, act, setNote }: {
   );
 }
 
-function HistoryPanel({ server: s }: { server: MpServer }) {
+export function HistoryPanel({ server: s }: { server: MpServer }) {
   const [rows, setRows] = useState<HostCommand[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
