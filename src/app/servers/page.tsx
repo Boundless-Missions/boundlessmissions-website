@@ -8,6 +8,7 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Button } from "@/components/ui/button";
 import { ServersCard } from "@/components/account/servers-card";
+import { AddServerCard } from "@/components/account/add-server-card";
 import { useServerAccess } from "@/lib/mp-servers";
 import { useSignedIn } from "@/lib/session";
 
@@ -25,6 +26,8 @@ export default function ServersPage() {
   // useServerAccess is null both while probing and when refused; give the probe
   // a moment before concluding "no access", so a tester never sees a flash of it.
   const [settled, setSettled] = useState(false);
+  // Bumped after a pairing so the list remounts and shows the new server.
+  const [listKey, setListKey] = useState(0);
   const settle = useCallback(() => setSettled(true), []);
   useEffect(() => {
     if (signedIn !== true || access) return;
@@ -53,7 +56,12 @@ export default function ServersPage() {
       </p>
     );
   } else {
-    body = <ServersCard />;
+    body = (
+      <div className="space-y-4">
+        <AddServerCard onPaired={() => setListKey((k) => k + 1)} />
+        <ServersCard key={listKey} />
+      </div>
+    );
   }
 
   return (

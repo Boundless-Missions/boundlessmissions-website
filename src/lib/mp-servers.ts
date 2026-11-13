@@ -186,6 +186,36 @@ export async function run(
   throw err;
 }
 
+// ── Pairing a new server (the installer shows the code) ──────────────────────
+
+export const INSTALL_COMMAND =
+  "curl -fsSL https://mainserver.boundlessmissions.com/api/v1/mp/install.sh | sudo bash";
+
+export interface PairingHost {
+  hostname: string;
+  os: string;
+  /** What the installer found on the machine's own interface. */
+  public_ip: string;
+  /** What the account service saw the request come from (may be a proxy). */
+  observed_ip: string;
+  server_type: string;
+  name_hint: string;
+}
+
+export async function lookupPairing(code: string): Promise<{ code: string; host: PairingHost; expires_wc: number }> {
+  const res = await authedFetch(`/api/mp/pair/${encodeURIComponent(code.trim())}`, { cache: "no-store" });
+  return jsonOrThrow(res);
+}
+
+export async function claimPairing(code: string, name: string): Promise<{ server_id: string; name: string }> {
+  const res = await authedFetch(`/api/mp/pair/${encodeURIComponent(code.trim())}`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ name }),
+  });
+  return jsonOrThrow(res);
+}
+
 export class CommandError extends Error {
   constructor(message: string, public command: HostCommand) {
     super(message);
