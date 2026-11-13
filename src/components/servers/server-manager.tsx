@@ -20,6 +20,7 @@ import {
 } from "@/components/servers/glyphs";
 import { OptionsForm } from "@/components/servers/options-form";
 import { ConsoleShell } from "@/components/servers/console-shell";
+import { FilesPanel } from "@/components/servers/files-panel";
 
 /**
  * The server manager (Multiplayer Implementation Plans/Server Manager Concept 1).
@@ -231,13 +232,29 @@ function Section({ server: s, section, onChanged }: {
       );
     case "console":
       return <ConsoleShell server={s} />;
+    case "files":
+      return (
+        <>
+          {banner}
+          <FilesPanel server={s} allow={allow} busy={busy} act={act} setNote={setNote} />
+        </>
+      );
     case "mods":
       return (
-        <Card><CardContent className="space-y-3 p-5">
+        <Card><CardContent className="space-y-4 p-5">
           <h2 className="text-lg font-semibold">Mods</h2>
           {banner}
-          {allow.has("modset.set") ? <ModsPanel server={s} busy={busy} act={act} setNote={setNote} />
-            : <p className="text-sm text-muted-foreground">This server does not allow mod changes remotely.</p>}
+          <p className="text-sm text-muted-foreground">
+            Which mods players need, and where they download them, is managed under{" "}
+            <Link href={`/servers/${s.server_id}/files`} className="text-primary hover:underline">Files</Link>.
+            Join rules for players who have mods that are not on the list come here next.
+          </p>
+          {allow.has("modset.set") && (
+            <details className="rounded-lg border border-border p-4">
+              <summary className="cursor-pointer text-sm text-muted-foreground">Upload a complete modset.json directly (advanced)</summary>
+              <div className="mt-3"><ModsPanel server={s} busy={busy} act={act} setNote={setNote} /></div>
+            </details>
+          )}
         </CardContent></Card>
       );
     case "logs":
@@ -407,7 +424,6 @@ function AccessPanel({ server: s }: { server: MpServer }) {
 }
 
 const PENDING: Record<string, string> = {
-  files: "Browse and manage the server's files.",
   players: "Who is online, who has played here, and moderation.",
   vessels: "Every craft in this universe and where it is.",
 };
