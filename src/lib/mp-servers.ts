@@ -67,6 +67,8 @@ export interface MpServer {
   keys_universe_id?: string;
   agent: AgentState;
   listing?: MasterListing | null;
+  /** Approximate location of the listed address (bot: data/geoip.py). */
+  location?: { label: string; city?: string; region?: string; country?: string } | null;
 }
 
 export type CommandState = "pending" | "delivered" | "done" | "failed" | "expired";
@@ -138,6 +140,47 @@ export function useServerAccess(): ServerAccess | null {
     };
   }, [signedIn]);
   return access;
+}
+
+// ── Ping to the viewer ───────────────────────────────────────────────────────
+//
+// A browser cannot time a game server (its certificate is self-signed), so this
+// times the viewer's round trip to Boundless Missions' own server: the master's
+// /v1/ping, which runs beside the account service. Honest label in the UI.
+
+export const PING_URL = "https://master.boundlessmissions.com/v1/ping";
+
+async function onePing(): Promise<number> {
+  const t0 = performance.now();
+  const r = await fetch(`${PING_URL}?t=${Date.now()}`, { cache: "no-store", mode: "cors" });
+  await r.arrayBuffer();
+  if (!r.ok) throw new Error(String(r.status));
+  return performance.now() - t0;
+}
+
+/** Median of a few round trips (the first, which pays DNS/TLS, is dropped). */
+export async function measurePing(samples = 4): Promise<number | null> {
+  const out: number[] = [];
+  try {
+    await onePing();
+    for (let i = 0; i < samples; i++) out.push(await onePing());
+  } catch {
+    return null;
+  }
+  out.sort((a, b) => a - b);
+  return Math.round(out[Math.floor(out.length / 2)]);
+}
+
+export function usePing(intervalMs = 60_000): number | null {
+  const [ms, setMs] = useState<number | null>(null);
+  useEffect(() => {
+    let alive = true;
+    const go = () => { void measurePing().then((v) => { if (alive) setMs(v); }); };
+    go();
+    const t = setInterval(go, intervalMs);
+    return () => { alive = false; clearInterval(t); };
+  }, [intervalMs]);
+  return ms;
 }
 
 /** The signed-in account's registered servers; null when signed out. */

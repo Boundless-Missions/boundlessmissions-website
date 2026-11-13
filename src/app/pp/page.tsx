@@ -42,7 +42,7 @@ export default function PrivacyPolicyPage() {
                 Privacy Policy
               </h1>
               <p className="mt-3 text-muted-foreground">
-                Last updated · <time dateTime="2026-08-24">24 August 2026</time>
+                Last updated · <time dateTime="2026-11-13">13 November 2026</time>
               </p>
             </div>
           </div>
@@ -488,6 +488,15 @@ export default function PrivacyPolicyPage() {
                   <strong className="text-foreground">Discord</strong>: the
                   bot and community features run on Discord, whose own privacy
                   policy governs your Discord account.
+                </li>
+                <li>
+                  <strong className="text-foreground">IPinfo</strong>: when you
+                  manage a multiplayer server you registered, we look up the
+                  approximate location (city and country) of that server&apos;s
+                  public IP address &mdash; the same address the in-game server
+                  browser already shows &mdash; to display it on your Servers page.
+                  Only the server&apos;s address is sent, once a week at most; your
+                  own address and players&apos; addresses are never sent.
                 </li>
               </ul>
             </div>

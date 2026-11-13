@@ -8,7 +8,7 @@ import {
 
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { fetchServers, type MpServer } from "@/lib/mp-servers";
+import { fetchServers, usePing, type MpServer } from "@/lib/mp-servers";
 import { MetricsPanel } from "@/components/account/metrics-panel";
 import {
   HistoryPanel, ModsPanel, PowerBar, ReadOnlyNote, SettingsPanel, errText, problemsOf,
@@ -278,6 +278,7 @@ function HeaderCard({ server: s, allow, manageable, busy, act, setNote }: {
 }) {
   const a = s.agent;
   const l = s.listing;
+  const ping = usePing();
   const initials = s.name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
   const cpu = a.cpu_pct != null ? a.cpu_pct / (a.cpu_count || 1) : null;
   const ram = a.host_mem_used != null && a.host_mem_total ? (a.host_mem_used / a.host_mem_total) * 100 : null;
@@ -308,16 +309,20 @@ function HeaderCard({ server: s, allow, manageable, busy, act, setNote }: {
             <Globe className="h-4 w-4 shrink-0 text-primary" />
             {l?.address ? `${l.address}${l.port ? `:${l.port}` : ""}` : "not listed"}
           </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground"
+               title="Approximate location of the server's address">
             <MapPin className="h-3.5 w-3.5 shrink-0 text-primary/70" />
-            {l ? (l.reachable === "reachable" ? "Reachable from the internet" : `Reachability: ${l.reachable ?? "unknown"}`)
-              : "Location appears once listed"}
+            {s.location?.label ?? (l ? "Location unknown" : "Location appears once listed")}
           </div>
+          {l && l.reachable !== "reachable" && (
+            <div className="text-xs text-amber-500">Not reachable from the internet ({l.reachable ?? "unknown"})</div>
+          )}
         </div>
 
         <div className="min-w-0 space-y-1.5 md:pl-5">
-          <div className="flex items-center gap-2 text-sm" title="Measuring ping from your browser needs an endpoint on the game server; not built yet.">
-            <Signal className="h-4 w-4 shrink-0 text-primary" /> Ping <span className="text-muted-foreground">—</span>
+          <div className="flex items-center gap-2 whitespace-nowrap text-sm tabular-nums"
+               title="Your round trip to Boundless Missions' server. Browsers cannot time the game server itself (its certificate is self-signed).">
+            <Signal className="h-4 w-4 shrink-0 text-primary" /> Ping {ping != null ? `${ping} ms` : "—"}
           </div>
           <div className="flex items-center gap-2 whitespace-nowrap text-sm tabular-nums"
                title="CPU: the game server's share of the whole host. RAM: the host's memory in use.">

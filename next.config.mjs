@@ -28,7 +28,7 @@ const csp = [
   "img-src 'self' data: blob: https://storage.googleapis.com https://i.ytimg.com https://www.gstatic.com https://www.google.com",
   "style-src 'self' 'unsafe-inline'",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com https://www.gstatic.com",
-  "connect-src 'self' https://firebaseappcheck.googleapis.com https://content-firebaseappcheck.googleapis.com https://firebaseinstallations.googleapis.com https://www.google.com https://www.gstatic.com",
+  "connect-src 'self' https://firebaseappcheck.googleapis.com https://content-firebaseappcheck.googleapis.com https://firebaseinstallations.googleapis.com https://www.google.com https://www.gstatic.com https://master.boundlessmissions.com",
   "frame-src https://www.google.com https://www.youtube-nocookie.com",
   "font-src 'self' data:",
   "worker-src 'self' blob:",
