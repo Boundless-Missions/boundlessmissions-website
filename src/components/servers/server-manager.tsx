@@ -281,10 +281,11 @@ function Copyable({ text }: { text: string }) {
     <button
       type="button"
       onClick={() => { void navigator.clipboard?.writeText(text).then(() => { setDone(true); setTimeout(() => setDone(false), 1200); }); }}
-      className="inline-flex items-center gap-1 font-mono text-xs text-muted-foreground hover:text-foreground"
-      aria-label="Copy the server id"
+      className="inline-flex max-w-full items-center gap-1 font-mono text-xs text-muted-foreground hover:text-foreground"
+      aria-label="Copy the server id" title={text}
     >
-      {text} {done ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+      <span className="truncate">{text}</span>
+      {done ? <Check className="h-3 w-3 shrink-0" /> : <Copy className="h-3 w-3 shrink-0" />}
     </button>
   );
 }
@@ -305,13 +306,13 @@ function HeaderCard({ server: s, allow, manageable, busy, act, setNote }: {
 
   return (
     <Card>
-      <CardContent className="grid gap-5 p-5 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_auto_auto_auto] xl:gap-0 xl:divide-x xl:divide-border">
-        <div className="flex min-w-0 items-center gap-4 xl:pr-5">
+      <CardContent className="grid gap-5 p-5 md:grid-cols-2 xl:grid-cols-[minmax(12rem,1fr)_auto_auto_minmax(11rem,13rem)] xl:gap-0 xl:divide-x xl:divide-border">
+        <div className="flex min-w-0 items-center gap-3 xl:pr-4">
           {l?.thumbnail ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={l.thumbnail} alt="" className="h-14 w-14 shrink-0 rounded-md border border-border object-cover" />
+            <img src={l.thumbnail} alt="" className="h-12 w-12 shrink-0 rounded-md border border-border object-cover" />
           ) : (
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-md border border-primary/40 bg-primary/10 text-xl font-bold text-primary">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md border border-primary/40 bg-primary/10 text-lg font-bold text-primary">
               {initials || <ServerIcon className="h-7 w-7" />}
             </div>
           )}
@@ -321,7 +322,7 @@ function HeaderCard({ server: s, allow, manageable, busy, act, setNote }: {
           </div>
         </div>
 
-        <div className="min-w-0 space-y-1.5 xl:px-5">
+        <div className="min-w-0 space-y-1.5 xl:px-4">
           <div className="flex items-center gap-2 whitespace-nowrap font-mono text-sm">
             <Globe className="h-4 w-4 shrink-0 text-primary" />
             {l?.address ? `${l.address}${l.port ? `:${l.port}` : ""}` : "not listed"}
@@ -336,7 +337,7 @@ function HeaderCard({ server: s, allow, manageable, busy, act, setNote }: {
           )}
         </div>
 
-        <div className="min-w-0 space-y-1.5 xl:px-5">
+        <div className="min-w-0 space-y-1.5 xl:px-4">
           <div className="flex items-center gap-2 whitespace-nowrap text-sm tabular-nums"
                title="Your round trip to Boundless Missions' server. Browsers cannot time the game server itself (its certificate is self-signed).">
             <Signal className="h-4 w-4 shrink-0 text-primary" /> Ping {ping != null ? `${ping} ms` : "—"}
@@ -350,7 +351,7 @@ function HeaderCard({ server: s, allow, manageable, busy, act, setNote }: {
           </div>
         </div>
 
-        <div className="min-w-0 space-y-2 xl:pl-5">
+        <div className="min-w-0 space-y-2 xl:pl-4">
           <div className="flex items-center gap-2">
             <span className={cn("h-2.5 w-2.5 rounded-full",
               running ? "bg-primary" : a.online ? "bg-amber-500" : "bg-muted-foreground")} aria-hidden />
