@@ -259,6 +259,8 @@ function PowerBar({ server: s, allow, busy, act, setNote }: {
   setNote: (n: string | null) => void;
 }) {
   const [warn, setWarn] = useState(DEFAULT_WARN);
+  // Shown to players in game with the countdown (game/notices.py), e.g. "new mods".
+  const [notice, setNotice] = useState("");
   const [confirm, setConfirm] = useState<"restart" | "stop" | null>(null);
   const [code, setCode] = useState("");
   const running = s.agent.active_state === "active";
@@ -305,18 +307,27 @@ function PowerBar({ server: s, allow, busy, act, setNote }: {
             className="h-8 w-20 rounded-md border border-border bg-transparent px-2 text-sm"
             aria-label="Seconds to wait before restarting or stopping"
           /> s
+          <input
+            value={notice} onChange={(e) => setNotice(e.target.value)} maxLength={200}
+            placeholder="Message to players (optional)"
+            aria-label="Message shown to players with the countdown"
+            className="h-8 w-56 rounded-md border border-border bg-transparent px-2 text-sm"
+          />
         </label>
       )}
       {confirm === "restart" && (
         <ConfirmDialog
           title={`Restart ${s.name}?`}
-          description={`Players online will be disconnected${warn ? ` in ${warn} seconds` : ""}. ` +
-            "They can rejoin once it is back up."}
+          description={warn
+            ? `Players online get an in-game countdown and are disconnected in ${warn} seconds. ` +
+              "They can rejoin once it is back up."
+            : "Players online are disconnected straight away, with no warning. " +
+              "They can rejoin once it is back up."}
           confirmLabel="Restart"
           onCancel={() => setConfirm(null)}
           onConfirm={() => {
             setConfirm(null);
-            void doPower("service.restart", "restart", { warn_seconds: warn });
+            void doPower("service.restart", "restart", { warn_seconds: warn, message: notice.trim() });
           }}
         />
       )}
@@ -333,7 +344,7 @@ function PowerBar({ server: s, allow, busy, act, setNote }: {
               const c = code;
               setCode("");
               setConfirm(null);
-              void doPower("service.stop", "stop", { warn_seconds: warn }, c);
+              void doPower("service.stop", "stop", { warn_seconds: warn, message: notice.trim() }, c);
             }}
           >
             <input
