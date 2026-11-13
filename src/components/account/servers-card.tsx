@@ -253,9 +253,11 @@ function ServerAdmin({ server: s, onChanged }: { server: MpServer; onChanged: ()
 
 export type Act = (label: string, fn: () => Promise<void>) => Promise<void>;
 
-export function PowerBar({ server: s, allow, busy, act, setNote }: {
+export function PowerBar({ server: s, allow, busy, act, setNote, showReload = true }: {
   server: MpServer; allow: Set<string>; busy: string | null; act: Act;
   setNote: (n: string | null) => void;
+  /** Off in the server manager's header (reload moves elsewhere later). */
+  showReload?: boolean;
 }) {
   // One row of buttons; restart and stop open an inline confirmation that holds
   // the warning time, the message players see with the countdown
@@ -305,7 +307,7 @@ export function PowerBar({ server: s, allow, busy, act, setNote }: {
             {busy === "stop" ? <Loader2 className="animate-spin" /> : <Square />} Stop
           </Button>
         )}
-        {allow.has("service.reload") && running && (
+        {showReload && allow.has("service.reload") && running && (
           <Button size="sm" variant="ghost" disabled={!!busy} title="Re-read host.toml without restarting"
                   onClick={() => doPower("service.reload", "reload")}>
             {busy === "reload" ? <Loader2 className="animate-spin" /> : <RefreshCw />} Reload

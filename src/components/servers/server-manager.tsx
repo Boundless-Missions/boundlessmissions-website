@@ -101,7 +101,7 @@ export function ServerManager({ serverId, section }: { serverId: string; section
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[14rem_1fr]">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[14rem_minmax(0,1fr)]">
       <Sidebar server={server} section={section} many={servers.length > 1} />
       <div className="min-w-0 space-y-6">
         {error && <p className="text-sm text-destructive">{error}</p>}
@@ -113,7 +113,7 @@ export function ServerManager({ serverId, section }: { serverId: string; section
 
 function Sidebar({ server, section, many }: { server: MpServer; section: SectionId; many: boolean }) {
   return (
-    <nav aria-label="Server sections" className="lg:pt-2">
+    <nav aria-label="Server sections" className="min-w-0 lg:pt-2">
       <Link href="/servers?all=1"
             className="mb-3 inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-3.5 w-3.5" /> {many ? "All servers" : "Servers"}
@@ -288,13 +288,13 @@ function HeaderCard({ server: s, allow, manageable, busy, act, setNote }: {
 
   return (
     <Card>
-      <CardContent className="grid gap-5 p-5 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)] md:divide-x md:divide-border">
-        <div className="flex min-w-0 items-center gap-4">
+      <CardContent className="grid gap-5 p-5 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_auto_auto_auto] xl:gap-0 xl:divide-x xl:divide-border">
+        <div className="flex min-w-0 items-center gap-4 xl:pr-5">
           {l?.thumbnail ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={l.thumbnail} alt="" className="h-16 w-16 shrink-0 rounded-md border border-border object-cover" />
+            <img src={l.thumbnail} alt="" className="h-14 w-14 shrink-0 rounded-md border border-border object-cover" />
           ) : (
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-md border border-primary/40 bg-primary/10 text-xl font-bold text-primary">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-md border border-primary/40 bg-primary/10 text-xl font-bold text-primary">
               {initials || <ServerIcon className="h-7 w-7" />}
             </div>
           )}
@@ -304,8 +304,8 @@ function HeaderCard({ server: s, allow, manageable, busy, act, setNote }: {
           </div>
         </div>
 
-        <div className="min-w-0 space-y-1.5 md:pl-5">
-          <div className="flex items-center gap-2 font-mono text-sm">
+        <div className="min-w-0 space-y-1.5 xl:px-5">
+          <div className="flex items-center gap-2 whitespace-nowrap font-mono text-sm">
             <Globe className="h-4 w-4 shrink-0 text-primary" />
             {l?.address ? `${l.address}${l.port ? `:${l.port}` : ""}` : "not listed"}
           </div>
@@ -319,7 +319,7 @@ function HeaderCard({ server: s, allow, manageable, busy, act, setNote }: {
           )}
         </div>
 
-        <div className="min-w-0 space-y-1.5 md:pl-5">
+        <div className="min-w-0 space-y-1.5 xl:px-5">
           <div className="flex items-center gap-2 whitespace-nowrap text-sm tabular-nums"
                title="Your round trip to Boundless Missions' server. Browsers cannot time the game server itself (its certificate is self-signed).">
             <Signal className="h-4 w-4 shrink-0 text-primary" /> Ping {ping != null ? `${ping} ms` : "—"}
@@ -333,14 +333,14 @@ function HeaderCard({ server: s, allow, manageable, busy, act, setNote }: {
           </div>
         </div>
 
-        <div className="min-w-0 space-y-2 md:pl-5">
+        <div className="min-w-0 space-y-2 xl:pl-5">
           <div className="flex items-center gap-2">
             <span className={cn("h-2.5 w-2.5 rounded-full",
               running ? "bg-primary" : a.online ? "bg-amber-500" : "bg-muted-foreground")} aria-hidden />
             <span className="text-base font-semibold">{statusText}</span>
           </div>
           {manageable ? (
-            <PowerBar server={s} allow={allow} busy={busy} act={act} setNote={setNote} />
+            <PowerBar server={s} allow={allow} busy={busy} act={act} setNote={setNote} showReload={false} />
           ) : (
             <p className="text-xs text-muted-foreground">Controls appear when the admin agent is connected and remote admin is on.</p>
           )}
